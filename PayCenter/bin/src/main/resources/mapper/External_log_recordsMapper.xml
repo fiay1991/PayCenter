@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.park.paycenter.mapper.External_log_recordsMapper">
+	<!-- 定义数据库字段与实体对象的映射关系(SQL字段与类属性的映射关系，避免在SQL语句中使用as转换字段别名) -->
+	<resultMap type="External_log_records" id="resultExternal_log_records">
+		<id property="id" column="id" />
+		<result property="timestamp" column="timestamp" />
+		<result property="payment_platform" column="payment_platform" />
+		<result property="req_interface" column="req_interface" />
+		<result property="req_params" column="req_params" />
+		<result property="return_result" column="return_result" />
+	</resultMap>
+
+	<select id="findAll" resultType="list" resultMap="resultExternal_log_records">
+		SELECT * FROM
+		external_log_records
+	</select>
+
+	<!-- 添加日志记录 -->
+	<insert id="insert" parameterType="External_log_records">
+		<selectKey resultType="int" order="AFTER" keyProperty="id">
+			SELECT LAST_INSERT_ID() AS id
+		</selectKey>
+		INSERT INTO
+		external_log_records(payment_platform,req_interface,req_params,return_result)
+		VALUES(#{payment_platform},#{req_interface},#{req_params},#{return_result})
+	</insert>
+
+</mapper>

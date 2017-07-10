@@ -1,0 +1,22 @@
+package com.park.paycenter.service;
+
+import org.springframework.stereotype.Repository;
+
+/**
+ * @author wangfanfan 时间：2016年9月20日 功能： 备注：
+ */
+@Repository(value = "Internal_log_recordsService")
+public interface Internal_log_recordsService {
+
+	/**
+	 * 生成内部接口调用记录日志
+	 * @param timestamp
+	 * @param visitor
+	 * @param user_environment
+	 * @param req_params
+	 * @param req_interface
+	 * @param return_result
+	 * @return
+	 */
+	Integer creat_internal_log_records(String visitor, String user_environment,String req_params, String req_interface, String return_result);
+}

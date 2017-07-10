@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.park.paycenter.mapper.FailNotifyRecordMapper">
+	<!-- 定义数据库字段与实体对象的映射关系(SQL字段与类属性的映射关系，避免在SQL语句中使用as转换字段别名) -->
+	<resultMap type="FailNotifyRecord" id="resultFailNotifyRecord">
+		<id property="id" column="id" />
+		<result property="trade_type" column="trade_type" />
+		<result property="out_trade_no" column="out_trade_no" />
+		<result property="park_id" column="park_id" />
+		<result property="notify_url" column="notify_url" />
+		<result property="params" column="params" />
+		<result property="wx_zfb_no" column="wx_zfb_no" />
+		<result property="status" column="status" />
+		<result property="send_status" column="send_status" />
+		<result property="notify_times" column="notify_times" />
+		<result property="next_notify_time" column="next_notify_time" />
+		<result property="cause_mark" column="cause_mark" />
+		<result property="create_time" column="create_time" />
+		<result property="update_time" column="update_time" />
+	</resultMap>
+
+	<select id="findAll" resultType="list" resultMap="resultFailNotifyRecord">
+		SELECT * FROM
+		cc_notify_fail_record
+		ORDER BY update_time DESC
+	</select>
+
+	<select id="findByStatus" resultType="list" resultMap="resultFailNotifyRecord" >
+		SELECT * FROM
+		cc_notify_fail_record
+		WHERE status =#{status}
+		<if test="next_notify_time != null">
+			AND DATE_FORMAT(next_notify_time,'%Y-%m-%d %H:%i') = DATE_FORMAT(#{next_notify_time},'%Y-%m-%d %H:%i')
+		</if>
+		ORDER BY update_time DESC
+	</select>
+	
+	<!-- 插入 -->
+	<insert id="insert" parameterType="FailNotifyRecord">
+		<selectKey resultType="int" order="AFTER" keyProperty="id">
+			SELECT LAST_INSERT_ID() AS id
+		</selectKey>
+		INSERT INTO cc_notify_fail_record (
+			trade_type,
+			out_trade_no,
+			park_id,
+			notify_url,
+			params,
+			wx_zfb_no,
+			create_time,
+			status,
+			next_notify_time,
+			cause_mark
+		)
+		VALUES
+		( 	#{trade_type}, 
+			#{out_trade_no}, 
+			#{park_id},
+			#{notify_url},
+			#{params},
+			#{wx_zfb_no},
+			now(),
+			#{status}, 
+			#{next_notify_time},
+			#{cause_mark}
+		)
+	</insert>
+	
+	<!-- 更新 -->
+	<update id="update" parameterType="FailNotifyRecord">
+		UPDATE cc_notify_fail_record
+		<set>
+			<if test="out_trade_no != null">out_trade_no=#{out_trade_no}</if>
+			<if test="status != null">,status=#{status}</if>
+			<if test="send_status != null">,send_status=#{send_status}</if>
+			<if test="notify_times != null">,notify_times=#{notify_times}</if>
+			<if test="next_notify_time != null">,next_notify_time=#{next_notify_time}</if>
+		</set>
+		WHERE out_trade_no=#{out_trade_no}
+		<if test="id != 0">AND id=#{id}</if>
+	</update>
+	
+	<select id="findNoSendMail" resultType="list" resultMap="resultFailNotifyRecord">
+		SELECT * FROM
+		cc_notify_fail_record
+		WHERE send_status = 1
+		AND status != 'GREEN'
+		ORDER BY update_time DESC
+	</select>
+</mapper>

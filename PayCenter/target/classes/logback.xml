@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Copyright 2010-2011 The myBatis Team
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+        http://www.apache.org/licenses/LICENSE-2.0
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+-->
+<configuration scan="true" debug="false">
+    <!--定义日志文件的存储地址 勿在 LogBack 的配置中使用相对路径-->  
+    <!-- <property name="LOG_HOME" value="/Users/liuyang/Desktop" /> -->  
+    <property name="LOG_DIR" value="${catalina.base}/logs/PayCenter" />
+    <!-- 控制台输出 -->   
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+		<encoder charset="UTF-8">
+			<pattern>%d{yyyy/MM/dd HH:mm:ss.SSS} PG [%thread] %-5level [%X{transType} %X{merchantOrderNo}] %logger{80} [%L] - %msg%n</pattern>
+		</encoder>
+	</appender>
+
+	<appender name="SYS_INFO" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>${LOG_DIR}/system_info.log</file>
+		<append>true</append>
+		<filter class="ch.qos.logback.classic.filter.LevelFilter">
+			<level>INFO</level>
+			<onMatch>ACCEPT</onMatch>
+			<onMismatch>DENY</onMismatch>
+		</filter>
+		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+			<fileNamePattern>${LOG_DIR}/system_info.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+			<timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+				<maxFileSize>100MB</maxFileSize>
+			</timeBasedFileNamingAndTriggeringPolicy>
+			<maxHistory>100</maxHistory>
+		</rollingPolicy>
+
+		<encoder charset="UTF-8">
+			<pattern>%d{yyyy/MM/dd HH:mm:ss.SSS} [%thread] %-5level [%X{transType} %X{merchantOrderNo}] %logger{80} [%L] - %msg%n</pattern>
+		</encoder>
+	</appender>
+
+	<appender name="SYS_ERROR" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>${LOG_DIR}/system_error.log</file>
+		<append>true</append>
+		<filter class="ch.qos.logback.classic.filter.LevelFilter">
+			<level>ERROR</level>
+			<onMatch>ACCEPT</onMatch>
+			<onMismatch>DENY</onMismatch>
+		</filter>
+		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+			<fileNamePattern>${LOG_DIR}/system_error.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+			<timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+				<maxFileSize>100MB</maxFileSize>
+			</timeBasedFileNamingAndTriggeringPolicy>
+			<maxHistory>100</maxHistory>
+		</rollingPolicy>
+
+		<encoder charset="UTF-8">
+			<pattern>%d{yyyy/MM/dd HH:mm:ss.SSS} [%thread] %-5level [%X{transType} %X{merchantOrderNo}] %logger{80} [%L] - %msg%n</pattern>
+		</encoder>
+	</appender>
+
+	<appender name="PAYCENTER_INFO" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>${LOG_DIR}/PayCenter_info.log</file>
+		<append>true</append>
+		<filter class="ch.qos.logback.classic.filter.LevelFilter">
+			<level>INFO</level>
+			<onMatch>ACCEPT</onMatch>
+			<onMismatch>DENY</onMismatch>
+		</filter>
+		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+			<fileNamePattern>${LOG_DIR}/PayCenter_info.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+			<timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+				<maxFileSize>100MB</maxFileSize>
+			</timeBasedFileNamingAndTriggeringPolicy>
+			<maxHistory>100</maxHistory>
+		</rollingPolicy>
+
+		<encoder charset="UTF-8">
+			<pattern>%d{yyyy/MM/dd HH:mm:ss.SSS} [%thread] %-5level [%X{transType} %X{merchantOrderNo}] %logger{80} [%L] - %msg%n</pattern>
+		</encoder>
+	</appender>
+
+	<appender name="PAYCENTER_ERROR" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>${LOG_DIR}/PayCenter_error.log</file>
+		<append>true</append>
+		<filter class="ch.qos.logback.classic.filter.LevelFilter">
+			<level>ERROR</level>
+			<onMatch>ACCEPT</onMatch>
+			<onMismatch>DENY</onMismatch>
+		</filter>
+		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+			<fileNamePattern>${LOG_DIR}/PayCenter_error.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+			<timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+				<maxFileSize>100MB</maxFileSize>
+			</timeBasedFileNamingAndTriggeringPolicy>
+			<maxHistory>100</maxHistory>
+		</rollingPolicy>
+
+		<encoder charset="UTF-8">
+			<pattern>%d{yyyy/MM/dd HH:mm:ss.SSS} [%thread] %-5level [%X{transType} %X{merchantOrderNo}] %logger{80} [%L] - %msg%n</pattern>
+		</encoder>
+	</appender>
+	<!-- 精确设置每个包下面的日志     
+		用来设置某一个包或者具体的某一个类的日志打印级别、以及指定<appender>。<loger>仅有一个name属性，一个可选的level和一个可选的addtivity属性。
+		name:用来指定受此loger约束的某一个包或者具体的某一个类。
+		level:用来设置打印级别，大小写无关：TRACE, DEBUG, INFO, WARN, ERROR, ALL 和 OFF，还有一个特俗值INHERITED或者同义词NULL，代表强制执行上级的级别。
+			  如果未设置此属性，那么当前loger将会继承上级的级别。
+		addtivity:是否向上级loger传递打印信息。默认是true。
+		<loger>可以包含零个或多个<appender-ref>元素，标识这个appender将会添加到这个loger。-->
+	<logger name="com.park" level="INFO" additivity="false">
+		<appender-ref ref="CONSOLE" />
+		<appender-ref ref="PAYCENTER_INFO" />
+		<appender-ref ref="PAYCENTER_ERROR" />
+	</logger>
+	<!-- <logger name="dao" level="DEBUG">  
+   	 	daoFILE为实际定义的appender  
+    	<appender-ref ref="daoFILE" />  
+	</logger>   -->
+	<!-- 日志级别 --> 
+	<root level="INFO">
+		<appender-ref ref="CONSOLE" />
+		<appender-ref ref="SYS_INFO" />
+		<appender-ref ref="SYS_ERROR" />
+	</root>
+	 
+     <!--日志异步到数据库 -->  
+    <!-- <appender name="DB" class="ch.qos.logback.classic.db.DBAppender">
+        日志异步到数据库 
+        <connectionSource class="ch.qos.logback.core.db.DriverManagerConnectionSource">
+           连接池 
+           <dataSource class="com.mchange.v2.c3p0.ComboPooledDataSource">
+              <driverClass>com.mysql.jdbc.Driver</driverClass>
+              <url>jdbc:mysql://127.0.0.1:3306/databaseName</url>
+              <user>root</user>
+              <password>root</password>
+            </dataSource>
+        </connectionSource>
+  </appender> -->
+</configuration>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>  
+<!DOCTYPE configuration PUBLIC "-//mybatis.org//DTD  Config 3.0//EN" "http://mybatis.org/dtd/mybatis-3-config.dtd">
+
+<configuration>
+	<!-- 类的别名，定义别名后使用时不需要一大串包名的类全名 -->
+	<typeAliases>
+		<!-- liuyang -->
+		<typeAlias alias="Demo" type="com.park.paycenter.domain.Demo" />
+		<typeAlias alias="Pc_current_accounts" type="com.park.paycenter.domain.Pc_current_accounts" />
+		<typeAlias alias="Internal_log_records" type="com.park.paycenter.domain.Internal_log_records" />
+		<typeAlias alias="External_log_records" type="com.park.paycenter.domain.External_log_records" />
+		<typeAlias alias="FailNotifyRecord" type="com.park.h5business.domain.FailNotifyRecord"/>
+		<typeAlias type="com.park.paycenter.domain.ScheduleJob" alias="scheduleJob"/>
+	</typeAliases>
+</configuration>
