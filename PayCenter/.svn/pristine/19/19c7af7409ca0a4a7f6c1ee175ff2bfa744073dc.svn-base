@@ -1,0 +1,142 @@
+package com.park.paycenter.profile;
+
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.stereotype.Component;
+
+/**
+ * @author liuyang
+ *         时间：2016年4月12日
+ *         功能：微信的通用配置类
+ *         备注：
+ */
+@Component
+@ConfigurationProperties(prefix = "WeiXinProfile")
+public class WeiXinProfile {
+	private String appid;// 微信分配的公众账号ID（企业号corpid即为此appId
+	private String mch_id;// 微信支付分配的商户号
+	private String APIKey;// 微信的APIKey(注意上线以后不得修改,如在微信管理后台修改了APIKey程序必须升级更新,否则支付流程会瘫痪)
+	private String unifiedorder_url;// 微信的统一支付接口地址
+	private String micropay_url;// 微信刷卡支付接口地址
+	private String orderquery_url;// 微信的查询订单接口地址
+	private String offorder_url;// 微信的关闭接口地址
+	private String device_info;// 终端设备号(门店号或收银设备ID)，注意：PC网页或公众号内支付请传"WEB
+	private String trade_type_app;// 取值如下：JSAPI，NATIVE，APP，WAP,
+	private String trade_type_jsapi;//
+	private String trade_type_native;//
+	private String trade_type_wap;//
+	private String notify_url;// 支付结果通用通知
+	private String h5_notifyorder_url;//通知H5的url
+
+	public String getAppid() {
+		return appid;
+	}
+
+	public void setAppid(String appid) {
+		this.appid = appid;
+	}
+
+	public String getMch_id() {
+		return mch_id;
+	}
+
+	public void setMch_id(String mch_id) {
+		this.mch_id = mch_id;
+	}
+
+	public String getAPIKey() {
+		return APIKey;
+	}
+
+	public void setAPIKey(String aPIKey) {
+		APIKey = aPIKey;
+	}
+
+	public String getUnifiedorder_url() {
+		return unifiedorder_url;
+	}
+
+	public void setUnifiedorder_url(String unifiedorder_url) {
+		this.unifiedorder_url = unifiedorder_url;
+	}
+
+	public String getOrderquery_url() {
+		return orderquery_url;
+	}
+
+	public void setOrderquery_url(String orderquery_url) {
+		this.orderquery_url = orderquery_url;
+	}
+
+	public String getOfforder_url() {
+		return offorder_url;
+	}
+
+	public void setOfforder_url(String offorder_url) {
+		this.offorder_url = offorder_url;
+	}
+
+	public String getDevice_info() {
+		return device_info;
+	}
+
+	public void setDevice_info(String device_info) {
+		this.device_info = device_info;
+	}
+
+	public String getTrade_type_app() {
+		return trade_type_app;
+	}
+
+	public void setTrade_type_app(String trade_type_app) {
+		this.trade_type_app = trade_type_app;
+	}
+
+	public String getTrade_type_jsapi() {
+		return trade_type_jsapi;
+	}
+
+	public void setTrade_type_jsapi(String trade_type_jsapi) {
+		this.trade_type_jsapi = trade_type_jsapi;
+	}
+
+	public String getTrade_type_native() {
+		return trade_type_native;
+	}
+
+	public void setTrade_type_native(String trade_type_native) {
+		this.trade_type_native = trade_type_native;
+	}
+
+	public String getTrade_type_wap() {
+		return trade_type_wap;
+	}
+
+	public void setTrade_type_wap(String trade_type_wap) {
+		this.trade_type_wap = trade_type_wap;
+	}
+
+	public String getNotify_url() {
+		return notify_url;
+	}
+
+	public void setNotify_url(String notify_url) {
+		this.notify_url = notify_url;
+	}
+
+	public String getH5_notifyorder_url() {
+		return h5_notifyorder_url;
+	}
+
+	public void setH5_notifyorder_url(String h5_notifyorder_url) {
+		this.h5_notifyorder_url = h5_notifyorder_url;
+	}
+
+	public String getMicropay_url() {
+		return micropay_url;
+	}
+
+	public void setMicropay_url(String micropay_url) {
+		this.micropay_url = micropay_url;
+	}
+
+}

@@ -39,9 +39,11 @@ import com.park.paycenter.profile.WeiXinProfile;
 import com.park.paycenter.requset.OffOrderRequest;
 import com.park.paycenter.requset.UnifiedorderRequest;
 import com.park.paycenter.requset.WeiXinH5APIRequest;
+import com.park.paycenter.requset.WeiXinMicroRequest;
 import com.park.paycenter.requset.WeiXinOffOrderRequest;
 import com.park.paycenter.requset.WeiXinUnifiedorderRequest;
 import com.park.paycenter.response.OffOrderResponse;
+import com.park.paycenter.response.QueryOrderResponse;
 import com.park.paycenter.response.UnifiedorderResponse;
 import com.park.paycenter.response.WeiXinNoticeOfPaymentResponse;
 import com.park.paycenter.service.External_log_recordsService;
@@ -49,6 +51,7 @@ import com.park.paycenter.service.FailNotifyRecordService;
 import com.park.paycenter.service.Pc_current_accountsService;
 import com.park.paycenter.service.WeiXinPayService;
 import com.park.paycenter.tools.BackResultTools;
+import com.park.paycenter.tools.DataChangeTools;
 import com.park.paycenter.tools.HttpJsonTools;
 import com.park.paycenter.tools.MD5encryptTool;
 import com.park.paycenter.tools.MoneyTool;
@@ -57,6 +60,7 @@ import com.park.paycenter.tools.XMLTool;
 /**
  * @author liuyang 时间：2016年4月6日 功能：微信支付-业务逻辑 备注：
  * update by fangct at 20160616 代码逻辑优化
+ * @author WangYuefei 时间：2017/11/17 功能：1、刷卡支付 2、从微信查询订单
  */
 @Repository(value = "WeiXinPayServiceImpl")
 public class WeiXinPayServiceImpl implements WeiXinPayService {
@@ -91,19 +95,31 @@ public class WeiXinPayServiceImpl implements WeiXinPayService {
 		weiXin_unifiedorderRequest.setMch_id(weiXinProfile.getMch_id());// 商户号
 		weiXin_unifiedorderRequest.setNonce_str(String.valueOf((int) ((Math.random() * 10 + 1) * 10000000)));// 随机字符串
 		weiXin_unifiedorderRequest.setBody(unifiedorderResponse.getBody());// 商品或支付单简要描述（如：停车费，停车年卡等）
-		weiXin_unifiedorderRequest.setSpbill_create_ip(request.getRemoteAddr());// 请求方的IP地址
+		String create_ip = unifiedorderResponse.getCreate_ip();
+		if(null == create_ip || "".equals(create_ip)) {
+			weiXin_unifiedorderRequest.setSpbill_create_ip(request.getRemoteAddr());// 请求方的IP地址
+		}else {
+			weiXin_unifiedorderRequest.setSpbill_create_ip(create_ip);// 请求方的IP地址
+		}
 		weiXin_unifiedorderRequest.setTotal_fee(unifiedorderResponse.getTotal_fee());// 订单总金额，单位为分
-		weiXin_unifiedorderRequest.setNotify_url(weiXinProfile.getNotify_url());// 通知地址
+		if(!unifiedorderResponse.getTerminal_type().equals(PayEquipmentConfig.CardPayMent)) {
+			weiXin_unifiedorderRequest.setNotify_url(weiXinProfile.getNotify_url());// 通知地址
+		}
 		weiXin_unifiedorderRequest.setOut_trade_no(unifiedorderResponse.getParkid() + "_" + unifiedorderResponse.getOut_trade_no());// 订单号
-
 		// 根据不同业务形式进行动态赋值的必填选项
-		weiXin_unifiedorderRequest.setTrade_type(weiXinProfile.getTrade_type_native());
 		if (unifiedorderResponse.getTerminal_type().equals(PayEquipmentConfig.AutomaticPayMent)) {
 			logger.info("微信自助缴费机支付...");
+			weiXin_unifiedorderRequest.setBody("自助缴费机扫码-停车费");
+			weiXin_unifiedorderRequest.setTrade_type(weiXinProfile.getTrade_type_native());
 		} else if (unifiedorderResponse.getTerminal_type().equals(PayEquipmentConfig.H5PayMent)) {
 			logger.info("微信H5扫码支付...");
+			weiXin_unifiedorderRequest.setBody("H5扫码-停车费");
 			weiXin_unifiedorderRequest.setTrade_type(weiXinProfile.getTrade_type_jsapi());
 			weiXin_unifiedorderRequest.setOpenid(unifiedorderResponse.getOpenid());
+		} else if (unifiedorderResponse.getTerminal_type().equals(PayEquipmentConfig.CardPayMent)) {
+			logger.info("微信刷卡支付...");
+			weiXin_unifiedorderRequest.setBody("扫码枪扫码-停车费");
+			weiXin_unifiedorderRequest.setAuth_code(unifiedorderResponse.getAuth_code());
 		}
 		String info = ErrorCode.成功.getContent();
 		int code = ErrorCode.成功.getCode();
@@ -112,13 +128,21 @@ public class WeiXinPayServiceImpl implements WeiXinPayService {
 			/******* 生成链接字符串并进行MD5加密 ********/
 			String stringSignTemp = piece_together_WeiXin_unifiedorder(weiXin_unifiedorderRequest);
 			weiXin_unifiedorderRequest.setSign(MD5encryptTool.getMD5(stringSignTemp));
-			
+			logger.info("** 微信支付 - 预备参数：" + DataChangeTools.bean2gson(weiXin_unifiedorderRequest));
 			/************* 生成xml ************/
 			String sendXML = creatWeiXin_unifiedorderXML(weiXin_unifiedorderRequest);
 			logger.info("生成请求微信的XML参数成功");
 			
 			/******* 向微信服务器发送 ********/
-			String weixinresponse = sendWeiXinService(weiXinProfile.getUnifiedorder_url(), new String(sendXML.toString().getBytes(), "ISO8859-1"));
+			String weixinOrderUrl = "";
+			if(unifiedorderResponse.getTerminal_type().equals(PayEquipmentConfig.CardPayMent)) {
+				weixinOrderUrl = weiXinProfile.getCardpay_url();
+			}else {
+				weixinOrderUrl = weiXinProfile.getUnifiedorder_url();
+			}
+			logger.info("** 微信支付 - URL：" + weixinOrderUrl);
+			logger.info("** 微信支付 - XML参数：" + sendXML);
+			String weixinresponse = sendWeiXinService(weixinOrderUrl, new String(sendXML.toString().getBytes(), "ISO8859-1"));
 			logger.info("向微信发送下单请求成功");
 			logger.info("微信下单返回结果：{}",weixinresponse);
 			
@@ -136,21 +160,41 @@ public class WeiXinPayServiceImpl implements WeiXinPayService {
 					logger.info("微信返回通信失败，提示信息为：{}",map.get("return_msg"));
 					info = map.get("return_msg").toString();
 					code = ErrorCode.服务器参数错误.getCode();
-					return BackResultTools.response(ErrorCode.服务器参数错误.getCode(), info, unifiedorderResponse, "");
+					return BackResultTools.response(code, info, unifiedorderResponse, "");
 				} 
 				/*校验签名通过*/
 				if (checkMD5(weixinresponse)) {
 					/*下单的业务逻辑处理失败*/
 					if (map.get("result_code").toString().equals("FAIL")) {
-						logger.info("微信下单返回状态为FAIL : 状态码："+ map.get("err_code") +"返回信息："+ map.get("err_code_des"));
+						String wxErrCode = map.get("err_code").toString();
 						info = map.get("err_code_des").toString();
+						logger.info("微信下单返回状态为FAIL : 状态码："+ wxErrCode +"，返回信息："+ info);
+						if("USERPAYING".equals(wxErrCode) || "SYSTEMERROR".equals(wxErrCode) || "BANKERROR".equals(wxErrCode)) {
+							logger.info(" 微信支付 - 支付中 - 生成流水账。。。");
+							// 生成流水账
+							Integer id = pc_current_accountsService.creat_current_accounts(PaymentPlatformConfig.WEIXIN, new BigDecimal(MoneyTool.fromFenToYuan(unifiedorderResponse.getTotal_fee())), null, unifiedorderResponse.getOut_trade_no(), unifiedorderResponse.getTerminal_type(), unifiedorderResponse.getParkid(), unifiedorderResponse.getParkid() + "_" + unifiedorderResponse.getOut_trade_no(), null, null, PayStatusConfig.INTRADING,null);
+							if (null == id) {
+								logger.info(" 微信支付 - 支付中 - 生成流水账失败！");
+								return BackResultTools.response(ErrorCode.订单创建失败.getCode(), ErrorCode.订单创建失败.getContent(), unifiedorderResponse, "");
+							}
+							code = ErrorCode.刷卡支付中.getCode();
+							return BackResultTools.response(ErrorCode.刷卡支付中.getCode(), info, unifiedorderResponse, "");
+						}
 						code = ErrorCode.服务器参数错误.getCode();
-						return BackResultTools.response(ErrorCode.服务器参数错误.getCode(), info, unifiedorderResponse, "");
+						return BackResultTools.response(code, info, unifiedorderResponse, "");
 					/*下单的业务逻辑处理成功*/
 					} else {
 						// 生成流水账
-						Integer id = pc_current_accountsService.creat_current_accounts(PaymentPlatformConfig.WEIXIN, new BigDecimal(MoneyTool.fromFenToYuan(unifiedorderResponse.getTotal_fee())), null, unifiedorderResponse.getOut_trade_no(), unifiedorderResponse.getTerminal_type(), unifiedorderResponse.getParkid(), unifiedorderResponse.getParkid() + "_" + unifiedorderResponse.getOut_trade_no(), map.get("prepay_id").toString(), null, PayStatusConfig.NPAY,null);
+						Integer id = 0;
+						if(unifiedorderResponse.getTerminal_type().equals(PayEquipmentConfig.CardPayMent)) {
+							logger.info(" 微信支付 - 刷卡支付 - 生成流水账。。。");
+							id = pc_current_accountsService.creat_current_accounts(PaymentPlatformConfig.WEIXIN, new BigDecimal(MoneyTool.fromFenToYuan(unifiedorderResponse.getTotal_fee())), null, unifiedorderResponse.getOut_trade_no(), unifiedorderResponse.getTerminal_type(), unifiedorderResponse.getParkid(), unifiedorderResponse.getParkid() + "_" + unifiedorderResponse.getOut_trade_no(), null, null, PayStatusConfig.YPAY,null);
+						}else {
+							logger.info(" 微信支付 - 统一下单 - 生成流水账。。。");
+							id = pc_current_accountsService.creat_current_accounts(PaymentPlatformConfig.WEIXIN, new BigDecimal(MoneyTool.fromFenToYuan(unifiedorderResponse.getTotal_fee())), null, unifiedorderResponse.getOut_trade_no(), unifiedorderResponse.getTerminal_type(), unifiedorderResponse.getParkid(), unifiedorderResponse.getParkid() + "_" + unifiedorderResponse.getOut_trade_no(), map.get("prepay_id").toString(), null, PayStatusConfig.INTRADING,null);
+						}
 						if (null == id) {
+							logger.info(" 微信支付 - 生成流水账失败！");
 							return BackResultTools.response(ErrorCode.订单创建失败.getCode(), ErrorCode.订单创建失败.getContent(), unifiedorderResponse, "");
 						}
 						// 根据不同业务形式返回相应的json数据
@@ -175,6 +219,18 @@ public class WeiXinPayServiceImpl implements WeiXinPayService {
 							System.out.println("MD5加密的值：" + weiXinH5APIRequest.getPaySign());
 	
 							return BackResultTools.response(code, info, weiXinH5APIRequest, "");
+						} else if(unifiedorderResponse.getTerminal_type().equals(PayEquipmentConfig.CardPayMent)) {
+							WeiXinMicroRequest wxMicroRequest = new WeiXinMicroRequest();
+							wxMicroRequest.setAppid(weiXinProfile.getAppid());
+							wxMicroRequest.setOpenid(map.get("openid").toString());
+							wxMicroRequest.setOut_trade_no(map.get("out_trade_no").toString());
+							wxMicroRequest.setTime_end(map.get("time_end").toString());
+							wxMicroRequest.setTotal_fee(map.get("total_fee").toString());
+							wxMicroRequest.setTrade_type(map.get("trade_type").toString());
+							wxMicroRequest.setBank_type(map.get("bank_type").toString());
+							wxMicroRequest.setTransaction_id(map.get("transaction_id").toString());
+							logger.info("微信刷卡支付成功，返回数据：" + wxMicroRequest.toString());
+							return BackResultTools.response(code, info, wxMicroRequest, "");
 						}
 					}
 				/*校验签名失败*/
@@ -233,14 +289,14 @@ public class WeiXinPayServiceImpl implements WeiXinPayService {
 							returnResponse.setReturn_code("FAIL");
 							returnResponse.setReturn_msg("没有找到此订单的相关信息");
 						/*订单状态为已支付时，重复通知了*/
-						} else if(pc_current_accounts.getStauts().equals(PayStatusConfig.YPAY)){
+						} else if(pc_current_accounts.getStatus().equals(PayStatusConfig.YPAY)){
 							logger.info("订单号：{},微信重复通知！", pc_current_accounts.getOut_trade_no());
 							returnResponse.setReturn_code("SUCCESS");
 							returnResponse.setReturn_msg("OK");
 						/*订单状态为不为已支付的情况*/
 						}else{
-							logger.info("订单号：{},订单的支付状态为：{}", pc_current_accounts.getOut_trade_no(), pc_current_accounts.getStauts());
-							pc_current_accounts.setStauts(PayStatusConfig.YPAY);
+							logger.info("订单号：{},订单的支付状态为：{}", pc_current_accounts.getOut_trade_no(), pc_current_accounts.getStatus());
+							pc_current_accounts.setStatus(PayStatusConfig.YPAY);
 							pc_current_accountsDao.update(pc_current_accounts);
 							logger.info("订单号：{},支付成功，修改支付状态为“已支付”成功！",pc_current_accounts.getOut_trade_no());
 							returnResponse.setReturn_code("SUCCESS");
@@ -326,7 +382,7 @@ public class WeiXinPayServiceImpl implements WeiXinPayService {
 						if(map.get("err_code").toString().equals("ORDERPAID")){
 							// 改变订单的状态
 							Pc_current_accounts pc_current_accounts = new Pc_current_accounts();
-							pc_current_accounts.setStauts(PayStatusConfig.YPAY);
+							pc_current_accounts.setStatus(PayStatusConfig.YPAY);
 							pc_current_accounts.setOrdernum(offOrderResponse.getParkid() + "_" + offOrderResponse.getOut_trade_no());
 							pc_current_accountsDao.update(pc_current_accounts);
 							logger.info("订单：{}，已支付成功，不能关闭！",offOrderResponse.getOut_trade_no());
@@ -335,7 +391,7 @@ public class WeiXinPayServiceImpl implements WeiXinPayService {
 						} else if (map.get("err_code").toString().equals("ORDERCLOSED")) {
 							// 改变订单的状态
 							Pc_current_accounts pc_current_accounts = new Pc_current_accounts();
-							pc_current_accounts.setStauts(PayStatusConfig.OFFPAY);
+							pc_current_accounts.setStatus(PayStatusConfig.OFFPAY);
 							pc_current_accounts.setOrdernum(offOrderResponse.getParkid() + "_" + offOrderResponse.getOut_trade_no());
 							pc_current_accountsDao.update(pc_current_accounts);
 							logger.info("订单：{}，已经关闭，不能重复关闭！",offOrderResponse.getOut_trade_no());
@@ -351,7 +407,7 @@ public class WeiXinPayServiceImpl implements WeiXinPayService {
 					} else {
 						// 改变订单的状态
 						Pc_current_accounts pc_current_accounts = new Pc_current_accounts();
-						pc_current_accounts.setStauts(PayStatusConfig.OFFPAY);
+						pc_current_accounts.setStatus(PayStatusConfig.OFFPAY);
 						pc_current_accounts.setOrdernum(offOrderResponse.getParkid() + "_" + offOrderResponse.getOut_trade_no());
 						pc_current_accountsDao.update(pc_current_accounts);
 						logger.info("订单号：{}，取消订单成功！",offOrderResponse.getOut_trade_no());
@@ -484,18 +540,24 @@ public class WeiXinPayServiceImpl implements WeiXinPayService {
 
 		String character = "";
 		character += "appid=" + weiXin_unifiedorderRequest.getAppid();
+		if(null != weiXin_unifiedorderRequest.getAuth_code()) {
+			character += "&auth_code=" + weiXin_unifiedorderRequest.getAuth_code();
+		}
 		character += "&body=" + weiXin_unifiedorderRequest.getBody();
 		character += "&mch_id=" + weiXin_unifiedorderRequest.getMch_id();
 		character += "&nonce_str=" + weiXin_unifiedorderRequest.getNonce_str();
-		character += "&notify_url=" + weiXin_unifiedorderRequest.getNotify_url();
+		if(null != weiXin_unifiedorderRequest.getNotify_url()) {
+			character += "&notify_url=" + weiXin_unifiedorderRequest.getNotify_url();
+		}
 		if (null != weiXin_unifiedorderRequest.getOpenid()) {
 			character += "&openid=" + weiXin_unifiedorderRequest.getOpenid();
 		}
 		character += "&out_trade_no=" + weiXin_unifiedorderRequest.getOut_trade_no();
 		character += "&spbill_create_ip=" + weiXin_unifiedorderRequest.getSpbill_create_ip();
-
 		character += "&total_fee=" + weiXin_unifiedorderRequest.getTotal_fee();
-		character += "&trade_type=" + weiXin_unifiedorderRequest.getTrade_type();
+		if(null != weiXin_unifiedorderRequest.getTrade_type()) {
+			character += "&trade_type=" + weiXin_unifiedorderRequest.getTrade_type();
+		}
 
 		// 选填
 		if (null != weiXin_unifiedorderRequest.getDevice_info()) {
@@ -525,6 +587,24 @@ public class WeiXinPayServiceImpl implements WeiXinPayService {
 		if (null != weiXin_unifiedorderRequest.getLimit_pay()) {
 			character += "&limit_pay=" + weiXin_unifiedorderRequest.getLimit_pay();
 		}
+
+		character += "&key=" + weiXinProfile.getAPIKey();
+		return character;
+	}
+	
+	/**
+	 * 拼接(查询订单)字符串链接
+	 * 
+	 * @param weiXin_unifiedorderRequest
+	 * @return
+	 */
+	public String piece_together_WeiXin_queryorder(WeiXinUnifiedorderRequest weiXin_unifiedorderRequest) {
+
+		String character = "";
+		character += "appid=" + weiXin_unifiedorderRequest.getAppid();
+		character += "&mch_id=" + weiXin_unifiedorderRequest.getMch_id();
+		character += "&nonce_str=" + weiXin_unifiedorderRequest.getNonce_str();
+		character += "&out_trade_no=" + weiXin_unifiedorderRequest.getOut_trade_no();
 
 		character += "&key=" + weiXinProfile.getAPIKey();
 		return character;
@@ -628,16 +708,18 @@ public class WeiXinPayServiceImpl implements WeiXinPayService {
 		Element total_fee = xml.addElement("total_fee");// 订单总金额，只能为整数，详见支付金额
 		total_fee.setText(weiXin_AppPay_unifiedorder.getTotal_fee());
 
-		Element notify_url = xml.addElement("notify_url");// 接收微信支付异步通知回调地址
-		notify_url.setText(weiXin_AppPay_unifiedorder.getNotify_url());
-
-		Element trade_type = xml.addElement("trade_type");// 取值如下：JSAPI，NATIVE，APP，WAP,详细说明见参数规定
-		trade_type.setText(weiXin_AppPay_unifiedorder.getTrade_type());
-
 		Element sign = xml.addElement("sign");// 签名，详见签名生成算法
 		sign.setText(weiXin_AppPay_unifiedorder.getSign());
 
 		// 选填
+		if(null != weiXin_AppPay_unifiedorder.getTrade_type()) {
+			Element trade_type = xml.addElement("trade_type");// 取值如下：JSAPI，NATIVE，APP，WAP,详细说明见参数规定
+			trade_type.setText(weiXin_AppPay_unifiedorder.getTrade_type());
+		}
+		if(null != weiXin_AppPay_unifiedorder.getNotify_url()) {
+			Element notify_url = xml.addElement("notify_url");// 接收微信支付异步通知回调地址
+			notify_url.setText(weiXin_AppPay_unifiedorder.getNotify_url());
+		}
 		if (null != weiXin_AppPay_unifiedorder.getDetail()) {
 			Element detail = xml.addElement("detail");// 商品名称明细列表
 			detail.setText(weiXin_AppPay_unifiedorder.getDetail());
@@ -678,10 +760,41 @@ public class WeiXinPayServiceImpl implements WeiXinPayService {
 														// 此参数必传，用户在商户appid下的唯一标识。下单前需要调用【网页授权获取用户信息】接口获取到用户的Openid。
 			openid.setText(weiXin_AppPay_unifiedorder.getOpenid());
 		}
+		if (null != weiXin_AppPay_unifiedorder.getAuth_code()) {
+			Element openid = xml.addElement("auth_code");// 用户授权码
+			openid.setText(weiXin_AppPay_unifiedorder.getAuth_code());
+		}
 		if (null != weiXin_AppPay_unifiedorder.getDevice_info()) {
 			Element device_info = xml.addElement("device_info");// 设备号
 			device_info.setText(weiXin_AppPay_unifiedorder.getDevice_info());
 		}
+		return document.asXML();
+	}
+	
+	/**
+	 * 生成queryOrder(查询订单)的XML
+	 * 
+	 * @param weiXin_AppPay_unifiedorder
+	 */
+	public String createQueryOrderXML(WeiXinUnifiedorderRequest weiXin_AppPay_unifiedorder) {
+		Document document = DocumentHelper.createDocument();
+		Element xml = document.addElement("xml");
+		// 必填
+		Element appid = xml.addElement("appid");// 公众账号ID
+		appid.setText(weiXin_AppPay_unifiedorder.getAppid());
+
+		Element mch_id = xml.addElement("mch_id");// 微信支付分配的商户号
+		mch_id.setText(weiXin_AppPay_unifiedorder.getMch_id());
+
+		Element nonce_str = xml.addElement("nonce_str");// 随机字符串，不长于32位。推荐随机数生成算法
+		nonce_str.setText(weiXin_AppPay_unifiedorder.getNonce_str());
+
+		Element out_trade_no = xml.addElement("out_trade_no");// 商户系统内部的订单号,32个字符内、可包含字母,其他说明见商户订单号
+		out_trade_no.setText(weiXin_AppPay_unifiedorder.getOut_trade_no());
+
+		Element sign = xml.addElement("sign");// 签名，详见签名生成算法
+		sign.setText(weiXin_AppPay_unifiedorder.getSign());
+
 		return document.asXML();
 	}
 
@@ -787,5 +900,108 @@ public class WeiXinPayServiceImpl implements WeiXinPayService {
 			logger.info("订单号：{}，异步通知失败保存成功！",pc_current_accounts.getOut_trade_no());
 		else
 			logger.info("订单号：{}，异步通知失败保存失败！",pc_current_accounts.getOut_trade_no());
+	}
+
+	@Override
+	public String queryOrder(QueryOrderResponse queryOrderResp) {
+		// 必填项目
+		WeiXinUnifiedorderRequest weiXin_unifiedorderRequest = new WeiXinUnifiedorderRequest();// 发送给微信服务器的实体
+		weiXin_unifiedorderRequest.setAppid(weiXinProfile.getAppid());// 公众账号ID
+		weiXin_unifiedorderRequest.setMch_id(weiXinProfile.getMch_id());// 商户号
+		weiXin_unifiedorderRequest.setNonce_str(String.valueOf((int) ((Math.random() * 10 + 1) * 10000000)));// 随机字符串
+		weiXin_unifiedorderRequest.setNotify_url(weiXinProfile.getNotify_url());// 通知地址
+		weiXin_unifiedorderRequest.setOut_trade_no(queryOrderResp.getParkid() + "_" + queryOrderResp.getOut_trade_no());// 订单号
+
+		String info = ErrorCode.成功.getContent();
+		int code = ErrorCode.成功.getCode();
+		try {
+
+			/******* 生成链接字符串并进行MD5加密 ********/
+			String stringSignTemp = piece_together_WeiXin_queryorder(weiXin_unifiedorderRequest);
+			weiXin_unifiedorderRequest.setSign(MD5encryptTool.getMD5(stringSignTemp));
+			
+			/************* 生成xml ************/
+			String sendXML = createQueryOrderXML(weiXin_unifiedorderRequest);
+			logger.info("生成请求微信的XML参数成功");
+			
+			/******* 向微信服务器发送 ********/
+			String weixinOrderUrl = weiXinProfile.getOrderquery_url();
+			String weixinresponse = sendWeiXinService(weixinOrderUrl, new String(sendXML.toString().getBytes(), "ISO8859-1"));
+			logger.info("向微信发送查询订单请求成功");
+			logger.info("微信查询订单返回结果：{}",weixinresponse);
+			
+			external_log_recordsService.creat_external_log_records(PaymentPlatformConfig.WEIXIN, weiXinProfile.getUnifiedorder_url(), stringSignTemp, weixinresponse);
+			logger.info("记录查询订单请求的记录成功");
+			
+			/******* 向APP返回数据 ********/
+			if (null != weixinresponse) {
+				/******* 校验返回的数据是否合法 ********/
+				Map<String, Object> map = XMLTool.xmlToMap(weixinresponse);
+				logger.info("将微信返回的xml格式字符串转换为map成功");
+				
+				/*和微信的通信失败*/
+				if (map.get("return_code").toString().equals("FAIL")) {
+					logger.info("** 从微信查询订单 - 微信返回通信失败，提示信息为：{}",map.get("return_msg"));
+					info = map.get("return_msg").toString();
+					code = ErrorCode.服务器参数错误.getCode();
+					return BackResultTools.response(code, info, "", "");
+				} 
+				/*校验签名通过*/
+				if (checkMD5(weixinresponse)) {
+					/*下单的业务逻辑处理失败*/
+					if (map.get("result_code").toString().equals("FAIL")) {
+						String wxErrCode = map.get("err_code").toString();
+						info = map.get("err_code_des").toString();
+						logger.info("** 从微信查询订单结果为FAIL - 状态码："+ wxErrCode +"返回信息："+ info);
+						code = ErrorCode.服务器参数错误.getCode();
+						return BackResultTools.response(code, info, "", "");
+					/*下单的业务逻辑处理成功*/
+					} else {
+						String trade_state = map.get("trade_state").toString();
+						if("SUCCESS".equals(trade_state)) {
+							// 更新流水账表支付状态
+							Pc_current_accounts pc_current_accounts = new Pc_current_accounts();
+							pc_current_accounts.setOrdernum(weiXin_unifiedorderRequest.getOut_trade_no());
+							pc_current_accounts.setStatus(PayStatusConfig.YPAY);
+							pc_current_accountsDao.update(pc_current_accounts);
+							// 返回json数据
+							WeiXinMicroRequest wxMicroRequest = new WeiXinMicroRequest();
+							wxMicroRequest.setAppid(weiXinProfile.getAppid());
+							wxMicroRequest.setOut_trade_no(String.valueOf(map.get("out_trade_no")));
+							wxMicroRequest.setOpenid(String.valueOf(map.get("openid")));
+							wxMicroRequest.setTotal_fee(String.valueOf(map.get("total_fee")));
+							wxMicroRequest.setTime_end(String.valueOf(map.get("time_end")));
+							wxMicroRequest.setTransaction_id(String.valueOf(map.get("transaction_id")));
+							logger.info("** 从微信查询订单 - 返回数据：" + DataChangeTools.bean2gson(wxMicroRequest));
+							return BackResultTools.response(code, info, wxMicroRequest, "");
+						}else if("NOTPAY".equals(trade_state) || "USERPAYING".equals(trade_state)) {
+							WeiXinMicroRequest wxMicroRequest = new WeiXinMicroRequest();
+							wxMicroRequest.setAppid(weiXinProfile.getAppid());
+							wxMicroRequest.setOut_trade_no(String.valueOf(map.get("out_trade_no")));
+							logger.info("** 从微信查询订单 - 返回数据：" + DataChangeTools.bean2gson(wxMicroRequest));
+							return BackResultTools.response(ErrorCode.刷卡支付中.getCode(), ErrorCode.刷卡支付中.getContent(), wxMicroRequest, "");
+						}
+						// 返回json数据
+						WeiXinMicroRequest wxMicroRequest = new WeiXinMicroRequest();
+						wxMicroRequest.setAppid(weiXinProfile.getAppid());
+						wxMicroRequest.setOut_trade_no(String.valueOf(map.get("out_trade_no")));
+						logger.info("** 从微信查询订单 - 返回数据：" + DataChangeTools.bean2gson(wxMicroRequest));
+						return BackResultTools.response(ErrorCode.刷卡支付失败.getCode(), ErrorCode.刷卡支付失败.getContent(), wxMicroRequest, "");
+					}
+				/*校验签名失败*/
+				} else {
+					info = ErrorCode.微信发送的数据校验不通过.getContent();
+					code = ErrorCode.微信发送的数据校验不通过.getCode();
+					return BackResultTools.response(ErrorCode.服务器参数错误.getCode(), info, weiXin_unifiedorderRequest, "");
+				}
+			}else{
+				logger.info("微信返回对象为空!");
+				return BackResultTools.response(ErrorCode.服务器参数错误.getCode(), "微信返回对象为空" ,weiXin_unifiedorderRequest, "");
+			}
+		} catch (Exception e) {
+			// TODO: handle exception
+			e.printStackTrace();
+			return BackResultTools.response(ErrorCode.服务器参数错误.getCode(), ErrorCode.服务器参数错误.getContent() + e.getMessage(), weiXin_unifiedorderRequest, "");
+		}
 	}
 }

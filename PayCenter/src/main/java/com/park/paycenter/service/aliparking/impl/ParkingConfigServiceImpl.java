@@ -1,0 +1,132 @@
+package com.park.paycenter.service.aliparking.impl;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Repository;
+
+import com.alipay.api.AlipayClient;
+import com.alipay.api.DefaultAlipayClient;
+import com.alipay.api.domain.InterfaceInfoList;
+import com.alipay.api.request.AlipayEcoMycarParkingConfigQueryRequest;
+import com.alipay.api.request.AlipayEcoMycarParkingConfigSetRequest;
+import com.alipay.api.response.AlipayEcoMycarParkingConfigQueryResponse;
+import com.alipay.api.response.AlipayEcoMycarParkingConfigSetResponse;
+import com.park.paycenter.dao.aliparking.ParkingConfigDao;
+import com.park.paycenter.enums.ErrorCode;
+import com.park.paycenter.profile.AlipayConfigProfile;
+import com.park.paycenter.service.aliparking.ParkingConfigService;
+import com.park.paycenter.tools.BackResultTools;
+import com.park.paycenter.tools.DataChangeTools;
+
+/**
+ * 
+ * @author WangYuefei
+ *
+ */
+@Repository(value="parkingConfigServiceImpl")
+public class ParkingConfigServiceImpl implements ParkingConfigService {
+	
+	private Logger logger = LoggerFactory.getLogger(getClass());
+	
+	@Resource(name="parkingConfigDaoImpl")
+	private ParkingConfigDao parkingConfigDao;
+	
+	@Autowired
+	AlipayConfigProfile alipayConfigProfile;
+
+	@Override
+	public String configSet(Map<String, String> paramMap) {
+		try {
+			logger.info("** ISV系统配置 - 传入参数：" + DataChangeTools.bean2gson(paramMap));
+			// 开始准备调用支付宝
+			String merchant_name = paramMap.get("merchant_name");
+			String merchant_service_phone = paramMap.get("merchant_service_phone");
+			String account_no = paramMap.get("account_no");
+			String interface_url = paramMap.get("interface_url");
+			String merchant_logo = paramMap.get("merchant_logo");
+			AlipayClient alipayClient = new DefaultAlipayClient("https://openapi.alipay.com/gateway.do",alipayConfigProfile.getAppid(),
+					alipayConfigProfile.getRsa_private_key(),alipayConfigProfile.getFormat(),
+					alipayConfigProfile.getCharset(),alipayConfigProfile.getAlipay_public_key(),alipayConfigProfile.getSigntype());
+			AlipayEcoMycarParkingConfigSetRequest request = new AlipayEcoMycarParkingConfigSetRequest();
+			request.setBizContent("{" +
+			"\"merchant_name\":\"" + merchant_name + "\"," +
+			"\"merchant_service_phone\":\"" + merchant_service_phone + "\"," +
+			"\"account_no\":\"" + account_no + "\"," +
+			"      \"interface_info_list\":[{" +
+			"        \"interface_name\":\"alipay.eco.mycar.parking.userpage.query\"," +
+			"\"interface_type\":\"interface_page\"," +
+			"\"interface_url\":\"" + interface_url + "\"" +
+			"        }]," +
+			"\"merchant_logo\":\"" + merchant_logo + "\"" +
+			"  }");
+			logger.info("** ISV系统配置 - 待发送参数：" + DataChangeTools.bean2gson(request));
+			AlipayEcoMycarParkingConfigSetResponse response = alipayClient.execute(request);
+			logger.info("** ISV系统配置 - 支付宝返回结果：" + DataChangeTools.bean2gson(response));
+			// 根据返回的不同code返回相应结果
+			String code = response.getCode();
+			if("10000".equals(code)) {
+				logger.info("** ISV系统配置 - 配置成功！merchant_name = " + merchant_name);
+				int addResult = parkingConfigDao.addConfig(paramMap);
+				if(0 > addResult) {
+					logger.info("**  ISV系统配置 - 写入数据库失败。merchant_name = " + merchant_name);
+				}
+				return BackResultTools.response(ErrorCode.成功.getCode(), ErrorCode.成功.getContent(), paramMap, "");
+			}else {
+				logger.info("** ISV系统配置 - 配置失败：merchant_name = " + merchant_name + "，" 
+						+ response.getMsg() + ", " + response.getSubCode() + "," + 
+						response.getSubMsg());
+				return BackResultTools.response(ErrorCode.失败.getCode(), response.getSubMsg(), paramMap, "");
+			}
+		} catch (Exception e) {
+			logger.info("** ISV系统配置 - 服务器出现异常：" + e.getMessage());
+			e.printStackTrace();
+			return BackResultTools.response(ErrorCode.服务器参数错误.getCode(), ErrorCode.服务器参数错误.getContent(), "", "");
+		}
+	}
+
+	@Override
+	public String configQuery() {
+		try {
+			logger.info("** ISV系统配置查询 - 无参数。");
+			AlipayClient alipayClient = new DefaultAlipayClient("https://openapi.alipay.com/gateway.do",alipayConfigProfile.getAppid(),
+					alipayConfigProfile.getRsa_private_key(),alipayConfigProfile.getFormat(),
+					alipayConfigProfile.getCharset(),alipayConfigProfile.getAlipay_public_key(),alipayConfigProfile.getSigntype());
+			AlipayEcoMycarParkingConfigQueryRequest request = new AlipayEcoMycarParkingConfigQueryRequest();
+			request.setBizContent("{" +
+			"\"interface_name\":\"alipay.eco.mycar.parking.userpage.query\"," +
+			"\"interface_type\":\"interface_page\"" +
+			"  }");
+			logger.info("** ISV系统配置查询 - 待发送参数：" + DataChangeTools.bean2gson(request));
+			AlipayEcoMycarParkingConfigQueryResponse response = alipayClient.execute(request);
+			logger.info("** ISV系统配置查询 - 支付宝返回结果：" + DataChangeTools.bean2gson(response));
+			// 根据返回的不同code返回相应结果
+			String code = response.getCode();
+			if("10000".equals(code)) {
+				Map<String, String> resultMap = new HashMap<String, String>();
+				resultMap.put("merchant_name", response.getMerchantName());
+				resultMap.put("merchant_service_phone", response.getMerchantServicePhone());
+				resultMap.put("account_no", response.getAccountNo());
+				InterfaceInfoList interfaceInfoList = response.getInterfaceInfoList();
+				resultMap.put("interface_info_list", DataChangeTools.bean2gson(interfaceInfoList));
+				resultMap.put("merchant_logo", response.getMerchantLogo());
+				logger.info("** ISV系统配置查询 - 查询成功！");
+				return BackResultTools.response(ErrorCode.成功.getCode(), ErrorCode.成功.getContent(), resultMap, "");
+			}else {
+				logger.info("** ISV系统配置查询 - 查询失败：" + response.getMsg() + ", " 
+						+ response.getSubCode() + "," + response.getSubMsg());
+				return BackResultTools.response(ErrorCode.失败.getCode(), response.getSubMsg(), "", "");
+			}
+		} catch (Exception e) {
+			logger.info("** ISV系统配置查询 - 服务器出现异常：" + e.getMessage());
+			e.printStackTrace();
+			return BackResultTools.response(ErrorCode.服务器参数错误.getCode(), ErrorCode.服务器参数错误.getContent(), "", "");
+		}
+	}
+
+}

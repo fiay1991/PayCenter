@@ -1,8 +1,10 @@
 package com.park.paycenter.service.impl;
 
 import java.math.BigDecimal;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,9 +25,13 @@ import com.alipay.api.DefaultAlipayClient;
 import com.alipay.api.domain.AlipayTradeCloseModel;
 import com.alipay.api.domain.AlipayTradeWapPayModel;
 import com.alipay.api.request.AlipayTradeCloseRequest;
+import com.alipay.api.request.AlipayTradePayRequest;
+import com.alipay.api.request.AlipayTradeQueryRequest;
 import com.alipay.api.request.AlipayTradeWapPayRequest;
 import com.alipay.api.response.AlipayTradeCloseResponse;
+import com.alipay.api.response.AlipayTradePayResponse;
 import com.alipay.api.response.AlipayTradePrecreateResponse;
+import com.alipay.api.response.AlipayTradeQueryResponse;
 import com.google.gson.Gson;
 import com.park.paycenter.alipay.trade.config.Configs;
 import com.park.paycenter.alipay.trade.model.builder.AlipayTradePrecreateContentBuilder;
@@ -47,13 +53,16 @@ import com.park.paycenter.profile.AlipayPartnerProfile;
 import com.park.paycenter.profile.AlipayProfile;
 import com.park.paycenter.requset.OffOrderRequest;
 import com.park.paycenter.requset.UnifiedorderRequest;
+import com.park.paycenter.requset.WeiXinMicroRequest;
 import com.park.paycenter.response.OffOrderResponse;
+import com.park.paycenter.response.QueryOrderResponse;
 import com.park.paycenter.response.UnifiedorderResponse;
 import com.park.paycenter.service.AlipayService;
 import com.park.paycenter.service.External_log_recordsService;
 import com.park.paycenter.service.FailNotifyRecordService;
 import com.park.paycenter.service.Pc_current_accountsService;
 import com.park.paycenter.tools.BackResultTools;
+import com.park.paycenter.tools.DataChangeTools;
 import com.park.paycenter.tools.HttpJsonTools;
 import com.park.paycenter.tools.MoneyTool;
 import com.park.paycenter.tools.RSA;
@@ -61,6 +70,7 @@ import com.park.paycenter.tools.RSA;
 /**
  * @author liuyang 时间：2016年5月13日 功能：支付宝支付的相关业务逻辑 备注：
  * @update by fangct at 20170615 功能：1、优化代码 2、增加同步返回和关闭订单
+ * @author WangYuefei 时间：2017/11/17 功能：1、刷卡支付 2、从支付宝查询订单
  */
 @Repository(value = "AlipayServiceImpl")
 public class AlipayServiceImpl implements AlipayService {
@@ -123,6 +133,77 @@ public class AlipayServiceImpl implements AlipayService {
 	}
 
 	@Override
+	public String alipayCardPay(UnifiedorderResponse unifiedorderResponse, HttpServletRequest request,
+			HttpServletResponse response) {
+		try {
+			String out_trade_no = unifiedorderResponse.getParkid() + "_" + unifiedorderResponse.getOut_trade_no();
+			// 条码支付固定传入bar_code
+			String scene = "bar_code";
+			// 支付宝条码支付用户条码信息
+			String auth_code = unifiedorderResponse.getAuth_code();
+			String subject = "扫码枪扫码-停车费";
+			String store_id = "51park_cardpay_storeid";
+			String total_amount = MoneyTool.fromFenToYuan(unifiedorderResponse.getTotal_fee());;
+			String timeout_express = "2m"; // 支付超时时间，2分钟
+			AlipayClient alipayClient = new DefaultAlipayClient(alipayConfigProfile.getUrl(), 
+					alipayConfigProfile.getAppid(), alipayConfigProfile.getRsa_private_key(), 
+					alipayConfigProfile.getFormat(), alipayConfigProfile.getCharset(), 
+					alipayConfigProfile.getAlipay_public_key(), alipayConfigProfile.getSigntype());
+			logger.info("** 支付宝刷卡支付 - 加载alipay配置参数：" + DataChangeTools.bean2gson(alipayClient));
+			AlipayTradePayRequest payRequest = new AlipayTradePayRequest();
+			payRequest.setBizContent("{" +
+				"    \"out_trade_no\":\"" + out_trade_no + "\"," +
+				"    \"scene\":\"" + scene + "\"," +
+				"    \"auth_code\":\"" + auth_code + "\"," +
+				"    \"subject\":\"" + subject + "\"," +
+				"    \"store_id\":\"" + store_id + "\"," +
+				"    \"timeout_express\":\"" + timeout_express + "\"," +
+				"    \"total_amount\":\"" + total_amount + "\"" +
+				"  }"); //设置业务参数
+			logger.info("** 支付宝刷卡支付 - 待发送参数：" + DataChangeTools.bean2gson(payRequest));
+			// 发送支付请求并接收返回结果
+			AlipayTradePayResponse payResponse = alipayClient.execute(payRequest); //通过alipayClient调用API，获得对应的response类
+			logger.info("** 支付宝刷卡支付 - 支付宝返回结果：" + DataChangeTools.bean2gson(payResponse));
+			// 根据返回的不同code返回相应结果
+			String payCode = payResponse.getCode();
+			WeiXinMicroRequest wxMicroRequest = new WeiXinMicroRequest();
+			wxMicroRequest.setAppid(alipayConfigProfile.getAppid());
+			wxMicroRequest.setOpenid(payResponse.getOpenId());
+			wxMicroRequest.setOut_trade_no(payResponse.getOutTradeNo());
+			wxMicroRequest.setTransaction_id(payResponse.getTradeNo());
+			Date timeEndDate = payResponse.getGmtPayment();
+			if(null != timeEndDate) {
+				wxMicroRequest.setTime_end(new SimpleDateFormat("yyyyMMddHHmmss").format(timeEndDate));
+			}
+			wxMicroRequest.setTotal_fee(MoneyTool.fromYuanToFen(payResponse.getTotalAmount()));
+			if("10000".equals(payCode)) {
+				Integer id = pc_current_accountsService.creat_current_accounts(PaymentPlatformConfig.ZHIFUBAO, new BigDecimal(MoneyTool.fromFenToYuan(unifiedorderResponse.getTotal_fee())), null, unifiedorderResponse.getOut_trade_no(), unifiedorderResponse.getTerminal_type(), unifiedorderResponse.getParkid(), unifiedorderResponse.getParkid() + "_" + unifiedorderResponse.getOut_trade_no(), null, null, PayStatusConfig.YPAY,null);
+				if (null == id) {
+					logger.info(" 微信支付 - 支付中 - 生成流水账失败！");
+					return BackResultTools.response(ErrorCode.订单创建失败.getCode(), ErrorCode.订单创建失败.getContent(), unifiedorderResponse, "");
+				}
+				logger.info("** 支付宝刷卡支付 - 支付成功！");
+				return BackResultTools.response(ErrorCode.成功.getCode(), ErrorCode.成功.getContent(), wxMicroRequest, "");
+			}else if("10003".equals(payCode) || "20000".equals(payCode)) {
+				Integer id = pc_current_accountsService.creat_current_accounts(PaymentPlatformConfig.ZHIFUBAO, new BigDecimal(MoneyTool.fromFenToYuan(unifiedorderResponse.getTotal_fee())), null, unifiedorderResponse.getOut_trade_no(), unifiedorderResponse.getTerminal_type(), unifiedorderResponse.getParkid(), unifiedorderResponse.getParkid() + "_" + unifiedorderResponse.getOut_trade_no(), null, null, PayStatusConfig.NPAY,null);
+				if (null == id) {
+					logger.info(" 微信支付 - 支付中 - 生成流水账失败！");
+					return BackResultTools.response(ErrorCode.订单创建失败.getCode(), ErrorCode.订单创建失败.getContent(), unifiedorderResponse, "");
+				}
+				logger.info("** 支付宝刷卡支付 - 支付中...");
+				return BackResultTools.response(ErrorCode.刷卡支付中.getCode(), ErrorCode.刷卡支付中.getContent(), wxMicroRequest, "");
+			}else {
+				logger.info("** 支付宝刷卡支付 - 支付失败！");
+				return BackResultTools.response(ErrorCode.刷卡支付失败.getCode(), ErrorCode.刷卡支付失败.getContent(), wxMicroRequest, "");
+			}
+		} catch (Exception e) {
+			logger.info("** 支付宝刷卡支付 - 出现异常：" + e.getMessage());
+			e.printStackTrace();
+			return BackResultTools.response(ErrorCode.服务器参数错误.getCode(), ErrorCode.服务器参数错误.getContent(), "", "");
+		}
+	}
+	
+	@Override
 	public String alipayunifiedorder(UnifiedorderResponse unifiedorderResponse, HttpServletRequest request,
 			HttpServletResponse response) {
 		UnifiedorderRequest unifiedorderRequest = new UnifiedorderRequest();// 发送个用户端的实体
@@ -131,7 +212,7 @@ public class AlipayServiceImpl implements AlipayService {
 		String outTradeNo = unifiedorderResponse.getParkid() + "_" + unifiedorderResponse.getOut_trade_no();
 
 		// (必填) 订单标题，粗略描述用户的支付目的。如“喜士多（浦东店）消费”
-		String subject = unifiedorderResponse.getBody();
+		String subject = "自助缴费机扫码-停车费;";
 
 		// (必填) 订单总金额，单位为元，不能超过1亿元
 		// 如果同时传入了【打折金额】,【不可打折金额】,【订单总金额】三者,则必须满足如下条件:【订单总金额】=【打折金额】+【不可打折金额】
@@ -209,7 +290,7 @@ public class AlipayServiceImpl implements AlipayService {
 					unifiedorderResponse.getOut_trade_no(), unifiedorderResponse.getTerminal_type(),
 					unifiedorderResponse.getParkid(),
 					unifiedorderResponse.getParkid() + "_" + unifiedorderResponse.getOut_trade_no(), null, null,
-					PayStatusConfig.NPAY,null);
+					PayStatusConfig.INTRADING,null);
 
 			if (unifiedorderResponse.getTerminal_type().equals(PayEquipmentConfig.AutomaticPayMent)) {// 自助缴费机
 				unifiedorderRequest.setPrepayid(outTradeNo);
@@ -291,7 +372,7 @@ public class AlipayServiceImpl implements AlipayService {
 			pc_current_accountsService.creat_current_accounts(PaymentPlatformConfig.ZHIFUBAO,
 					new BigDecimal(unifiedorderResponse.getTotal_fee()), null, unifiedorderResponse.getOut_trade_no(),
 					unifiedorderResponse.getTerminal_type(), unifiedorderResponse.getParkid(), ordernum, null, null,
-					PayStatusConfig.NPAY,unifiedorderResponse.getReturn_url());
+					PayStatusConfig.INTRADING,unifiedorderResponse.getReturn_url());
 			logger.info("创建流水账单成功！");
 
 			external_log_recordsService.creat_external_log_records(PaymentPlatformConfig.ZHIFUBAO,
@@ -321,7 +402,7 @@ public class AlipayServiceImpl implements AlipayService {
 			// 支付宝的钱按“元”计算 本系统统一按照“分”计算，所以需要再次重新转换为“元”再给支付宝发送
 			unifiedorderResponse.setTotal_fee(MoneyTool.fromFenToYuan(unifiedorderResponse.getTotal_fee()));
 			// 订单名称，必填
-			String subject = "停车费用";
+			String subject = "H5扫码-停车费";
 			// 付款金额，必填
 			String total_amount = new String(unifiedorderResponse.getTotal_fee());
 			// 商品描述，可空
@@ -338,7 +419,7 @@ public class AlipayServiceImpl implements AlipayService {
 					alipayConfigProfile.getCharset(), alipayConfigProfile.getAlipay_public_key(),
 					alipayConfigProfile.getSigntype());
 			AlipayTradeWapPayRequest alipay_request = new AlipayTradeWapPayRequest();
-
+			 
 			// 封装请求支付信息
 			AlipayTradeWapPayModel model = new AlipayTradeWapPayModel();
 			model.setOutTradeNo(ordernum);
@@ -360,7 +441,7 @@ public class AlipayServiceImpl implements AlipayService {
 			pc_current_accountsService.creat_current_accounts(PaymentPlatformConfig.ZHIFUBAO,
 					new BigDecimal(unifiedorderResponse.getTotal_fee()), null, unifiedorderResponse.getOut_trade_no(),
 					unifiedorderResponse.getTerminal_type(), unifiedorderResponse.getParkid(), ordernum, null, null,
-					PayStatusConfig.NPAY,unifiedorderResponse.getReturn_url());
+					PayStatusConfig.INTRADING,unifiedorderResponse.getReturn_url());
 			logger.info("创建流水账单成功！");
 
 			// 将请求参数转换成JSON字符串格式
@@ -412,13 +493,13 @@ public class AlipayServiceImpl implements AlipayService {
 				search_pc_current_accounts = pc_current_accountsDao.search(search_pc_current_accounts);
 				Pc_current_accounts pc_current_accounts = new Pc_current_accounts();
 				//如果流水账该笔交易为已支付，说明重复通知
-				if (null != search_pc_current_accounts && search_pc_current_accounts.getStauts().equals(PayStatusConfig.YPAY)) {
+				if (null != search_pc_current_accounts && search_pc_current_accounts.getStatus().equals(PayStatusConfig.YPAY)) {
 					logger.info("订单号：{}，支付成功重复通知了，无需处理！",search_pc_current_accounts.getOut_trade_no());
 					return "success";
-				} else if(null != search_pc_current_accounts && !search_pc_current_accounts.getStauts().equals(PayStatusConfig.YPAY)){
+				} else if(null != search_pc_current_accounts && !search_pc_current_accounts.getStatus().equals(PayStatusConfig.YPAY)){
 					// 更新流水支付状态为已支付
 					pc_current_accounts.setId(search_pc_current_accounts.getId());
-					pc_current_accounts.setStauts(PayStatusConfig.YPAY);
+					pc_current_accounts.setStatus(PayStatusConfig.YPAY);
 					pc_current_accounts.setZfb_trade_no(zfb_trade_no);
 					pc_current_accounts.setOrdernum(search_pc_current_accounts.getOrdernum());
 					pc_current_accountsDao.update(pc_current_accounts);
@@ -442,7 +523,7 @@ public class AlipayServiceImpl implements AlipayService {
 			} else if(trade_status.equals("TRADE_CLOSED")){
 				// 改变订单的状态
 				Pc_current_accounts pc_current_accounts = new Pc_current_accounts();
-				pc_current_accounts.setStauts(PayStatusConfig.OFFPAY);
+				pc_current_accounts.setStatus(PayStatusConfig.OFFPAY);
 				pc_current_accounts.setOrdernum(ordernum);
 				pc_current_accountsDao.update(pc_current_accounts);
 				logger.info("下单的订单号：{}，异步通知关闭订单成功！", ordernum);
@@ -522,7 +603,7 @@ public class AlipayServiceImpl implements AlipayService {
 			if (alipay_response != null && alipay_response.isSuccess()) {// 关闭订单交易成功
 				// 改变订单的状态
 				Pc_current_accounts pc_current_accounts = new Pc_current_accounts();
-				pc_current_accounts.setStauts(PayStatusConfig.OFFPAY);
+				pc_current_accounts.setStatus(PayStatusConfig.OFFPAY);
 				pc_current_accounts.setOrdernum(outtradeno);
 				int n = pc_current_accountsDao.update(pc_current_accounts);
 				if(n == 0) logger.info("订单号：{}，更新订单关闭状态失败！", offOrderResponse.getOut_trade_no());
@@ -697,4 +778,51 @@ public class AlipayServiceImpl implements AlipayService {
 		else
 			logger.info("订单号：{}，异步通知失败记录失败！",pc_current_accounts.getOut_trade_no());
 	}
+
+	@Override
+	public String queryOrder(QueryOrderResponse queryOrderResp) {
+		try {
+			logger.info("** 从支付宝查询订单 - 入参：" + DataChangeTools.bean2gson(queryOrderResp));
+			AlipayClient alipayClient = new DefaultAlipayClient(alipayConfigProfile.getUrl(), 
+					alipayConfigProfile.getAppid(), alipayConfigProfile.getRsa_private_key(), 
+					alipayConfigProfile.getFormat(), alipayConfigProfile.getCharset(), 
+					alipayConfigProfile.getAlipay_public_key(), alipayConfigProfile.getSigntype()); //获得初始化的AlipayClient
+			logger.info("** 从支付宝查询订单 - alipay配置参数：" + DataChangeTools.bean2gson(alipayClient));
+			AlipayTradeQueryRequest request = new AlipayTradeQueryRequest();//创建API对应的request类
+			request.setBizContent("{" +
+			"    \"out_trade_no\":\"" + queryOrderResp.getParkid() + "_" + queryOrderResp.getOut_trade_no() + "\"}"); //设置业务参数
+			logger.info("** 从支付宝查询订单 - 请求参数：" + DataChangeTools.bean2gson(request));
+			AlipayTradeQueryResponse response = alipayClient.execute(request);//通过alipayClient调用API，获得对应的response类
+			logger.info("** 从支付宝查询订单 - 支付宝返回结果：" + DataChangeTools.bean2gson(response));
+			if("10000".equals(response.getCode())) {
+				if("TRADE_SUCCESS".equals(response.getTradeStatus())) {
+					// 更新流水账表支付状态
+					Pc_current_accounts pc_current_accounts = new Pc_current_accounts();
+					pc_current_accounts.setOrdernum(queryOrderResp.getOut_trade_no());
+					pc_current_accounts.setStatus(PayStatusConfig.YPAY);
+					pc_current_accountsDao.update(pc_current_accounts);
+					WeiXinMicroRequest wxMicroRequest = new WeiXinMicroRequest();
+					wxMicroRequest.setAppid(alipayConfigProfile.getAppid());
+					wxMicroRequest.setOpenid(response.getOpenId());
+					wxMicroRequest.setOut_trade_no(response.getOutTradeNo());
+					wxMicroRequest.setTotal_fee(response.getTotalAmount());
+					wxMicroRequest.setTransaction_id(response.getTradeNo());
+					logger.info("** 从支付宝查询订单 - 已成功支付。");
+					return BackResultTools.response(ErrorCode.成功.getCode(), ErrorCode.成功.getContent(), queryOrderResp, "");
+				}else if("TRADE_CLOSED".equals(response.getTradeStatus())) {
+					logger.info("** 从支付宝查询订单 - 交易已关闭。");
+					return BackResultTools.response(ErrorCode.刷卡支付失败.getCode(), ErrorCode.刷卡支付失败.getContent(), queryOrderResp, "");
+				}else if("WAIT_BUYER_PAY".equals(response.getTradeStatus())) {
+					logger.info("** 从支付宝查询订单 - 用户支付中...");
+					return BackResultTools.response(ErrorCode.刷卡支付中.getCode(), ErrorCode.刷卡支付中.getContent(), queryOrderResp, "");
+				}
+			}
+			return BackResultTools.response(ErrorCode.传入参数错误.getCode(), ErrorCode.刷卡支付中.getContent(), "", "");
+		} catch (Exception e) {
+			logger.info("** 从支付宝查询订单 - 出现异常：" + e.getMessage());
+			e.printStackTrace();
+			return BackResultTools.response(ErrorCode.服务器参数错误.getCode(), ErrorCode.服务器参数错误.getContent(), "", "");
+		}
+	}
+
 }

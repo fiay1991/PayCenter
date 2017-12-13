@@ -9,7 +9,7 @@
 		<typeAlias alias="Pc_current_accounts" type="com.park.paycenter.domain.Pc_current_accounts" />
 		<typeAlias alias="Internal_log_records" type="com.park.paycenter.domain.Internal_log_records" />
 		<typeAlias alias="External_log_records" type="com.park.paycenter.domain.External_log_records" />
-		<typeAlias alias="FailNotifyRecord" type="com.park.h5business.domain.FailNotifyRecord"/>
+		<typeAlias alias="FailNotifyRecord" type="com.park.paycenter.domain.FailNotifyRecord"/>
 		<typeAlias type="com.park.paycenter.domain.ScheduleJob" alias="scheduleJob"/>
 	</typeAliases>
 </configuration>

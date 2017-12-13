@@ -17,7 +17,7 @@
 		<result property="wx_prepayid" column="wx_prepayid" />
 		<result property="wx_transaction_id" column="wx_transaction_id" />
 		<result property="timestamp" column="timestamp" />
-		<result property="stauts" column="stauts" />
+		<result property="status" column="status" />
 	</resultMap>
 
 	<select id="findAll" resultType="list" resultMap="resultPc_current_accounts">
@@ -32,8 +32,8 @@
 			SELECT LAST_INSERT_ID() AS id
 		</selectKey>
 		INSERT INTO
-		pc_current_accounts(platform,income,pay,out_trade_no,terminal_type,park_id,ordernum,zfb_trade_no,wx_prepayid,wx_transaction_id,stauts,return_url)
-		VALUES(#{platform},#{income},#{pay},#{out_trade_no},#{terminal_type},#{park_id},#{ordernum},#{zfb_trade_no},#{wx_prepayid},#{wx_transaction_id},#{stauts},#{return_url})
+		pc_current_accounts(platform,income,pay,out_trade_no,terminal_type,park_id,ordernum,zfb_trade_no,wx_prepayid,wx_transaction_id,status,return_url)
+		VALUES(#{platform},#{income},#{pay},#{out_trade_no},#{terminal_type},#{park_id},#{ordernum},#{zfb_trade_no},#{wx_prepayid},#{wx_transaction_id},#{status},#{return_url})
 	</insert>
 	<!-- 更新 -->
 	<update id="update" parameterType="Pc_current_accounts">
@@ -50,7 +50,8 @@
 			<if test="wx_prepayid != null">wx_prepayid=#{wx_prepayid},</if>
 			<if test="wx_transaction_id != null">wx_transaction_id=#{wx_transaction_id},</if>
 			<if test="timestamp != null">timestamp=#{timestamp},</if>
-			<if test="stauts != null">stauts=#{stauts}</if>
+			<if test="status != null">status=#{status},</if>
+			update_time=NOW()
 		</set>
 		WHERE ordernum=#{ordernum}
 		<if test="id != 0">AND id=#{id}</if>
@@ -72,7 +73,7 @@
 		<if test="wx_prepayid != null">AND wx_prepayid=#{wx_prepayid}</if>
 		<if test="wx_transaction_id != null">AND wx_transaction_id=#{wx_transaction_id}</if>
 		<if test="timestamp != null">AND timestamp=#{timestamp}</if>
-		<if test="stauts != null">AND stauts=#{stauts}</if>
+		<if test="status != null">AND status=#{status}</if>
 		LIMIT 1
 	</select>
 	<!-- 查询列表 -->
@@ -92,6 +93,6 @@
 		<if test="wx_prepayid != null">AND wx_prepayid=#{wx_prepayid}</if>
 		<if test="wx_transaction_id != null">AND wx_transaction_id=#{wx_transaction_id}</if>
 		<if test="timestamp != null">AND timestamp=#{timestamp}</if>
-		<if test="stauts != null">AND stauts=#{stauts}</if>
+		<if test="status != null">AND status=#{status}</if>
 	</select>
 </mapper>

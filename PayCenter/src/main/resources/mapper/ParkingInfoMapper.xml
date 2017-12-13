@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.park.paycenter.mapper.ParkingInfoMapper">
+
+	<insert id="insertParkInfo">
+		INSERT INTO pc_ali_park_info(parking_id, city_id, out_parking_id, parking_address, 
+			longitude, latitude, parking_start_time, parking_end_time, parking_number, 
+			parking_lot_type, parking_type, payment_mode, pay_type, parking_name
+			<if test="equipment_name != null and equipment_name != ''">, equipment_name</if>
+			<if test="shopingmall_id != null and shopingmall_id != ''">, shopingmall_id</if>
+			<if test="parking_fee_description != null and parking_fee_description != ''">, parking_fee_description</if>
+			<if test="contact_name != null and contact_name != ''">, contact_name</if>
+			<if test="contact_mobile != null and contact_mobile != ''">, contact_mobile</if>
+			<if test="contact_tel != null and contact_tel != ''">, contact_tel</if>
+			<if test="contact_email != null and contact_email != ''">, contact_email</if>
+			<if test="contact_weixin != null and contact_weixin != ''">, contact_weixin</if>
+			<if test="contact_alipay != null and contact_alipay != ''">, contact_alipay</if>
+			<if test="time_out != null and time_out != ''">, time_out</if>
+			) 
+		VALUES(#{parking_id}, #{city_id}, #{out_parking_id}, #{parking_address}, 
+			#{longitude}, #{latitude}, #{parking_start_time}, #{parking_end_time}, #{parking_number}, 
+			#{parking_lot_type}, #{parking_type}, #{payment_mode}, #{pay_type}, #{parking_name}
+			<if test="equipment_name != null and equipment_name != ''">, #{equipment_name}</if>
+			<if test="shopingmall_id != null and shopingmall_id != ''">, #{shopingmall_id}</if>
+			<if test="parking_fee_description != null and parking_fee_description != ''">, #{parking_fee_description}</if>
+			<if test="contact_name != null and contact_name != ''">, #{contact_name}</if>
+			<if test="contact_mobile != null and contact_mobile != ''">, #{contact_mobile}</if>
+			<if test="contact_tel != null and contact_tel != ''">, #{contact_tel}</if>
+			<if test="contact_email != null and contact_email != ''">, #{contact_email}</if>
+			<if test="contact_weixin != null and contact_weixin != ''">, #{contact_weixin}</if>
+			<if test="contact_alipay != null and contact_alipay != ''">, #{contact_alipay}</if>
+			<if test="time_out != null and time_out != ''">, #{time_out}</if>
+			)
+	</insert>
+	
+	<update id="updateParkInfo">
+		UPDATE pc_ali_park_info SET 
+			city_id=#{city_id}
+			,out_parking_id=#{out_parking_id}
+			,parking_address=#{parking_address}
+			,longitude=#{longitude}
+			,latitude=#{latitude}
+			,parking_start_time=#{parking_start_time}
+			,parking_end_time=#{parking_end_time}
+			,parking_name=#{parking_name}
+			,parking_number=#{parking_number}
+			,parking_lot_type=#{parking_lot_type}
+			,parking_type=#{parking_type}
+			,payment_mode=#{payment_mode}
+			,pay_type=#{pay_type}
+			<if test="equipment_name != null and equipment_name != ''">, equipment_name=#{equipment_name}</if>
+			<if test="shopingmall_id != null and shopingmall_id != ''">, shopingmall_id=#{shopingmall_id}</if>
+			<if test="parking_fee_description != null and parking_fee_description != ''">, parking_fee_description=#{parking_fee_description}</if>
+			<if test="contact_name != null and contact_name != ''">, contact_name=#{contact_name}</if>
+			<if test="contact_mobile != null and contact_mobile != ''">, contact_mobile=#{contact_mobile}</if>
+			<if test="contact_tel != null and contact_tel != ''">, contact_tel=#{contact_tel}</if>
+			<if test="contact_email != null and contact_email != ''">, contact_email=#{contact_email}</if>
+			<if test="contact_weixin != null and contact_weixin != ''">, contact_weixin=#{contact_weixin}</if>
+			<if test="contact_alipay != null and contact_alipay != ''">, contact_alipay=#{contact_alipay}</if>
+		WHERE parking_id=#{parking_id}
+	</update>
+
+</mapper>
