@@ -7,7 +7,9 @@ import org.springframework.stereotype.Repository;
 /**
  * 
  * @author WangYuefei
- *
+ * @time 2017/12/12
+ * @function 停车场信息的新增和修改操作
+ * 
  */
 @Repository(value="parkingInfoService")
 public interface ParkingInfoService {

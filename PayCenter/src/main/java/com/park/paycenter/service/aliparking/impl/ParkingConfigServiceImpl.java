@@ -68,6 +68,11 @@ public class ParkingConfigServiceImpl implements ParkingConfigService {
 			logger.info("** ISV系统配置 - 待发送参数：" + DataChangeTools.bean2gson(request));
 			AlipayEcoMycarParkingConfigSetResponse response = alipayClient.execute(request);
 			logger.info("** ISV系统配置 - 支付宝返回结果：" + DataChangeTools.bean2gson(response));
+			// 整理返回参数
+			Map<String, String> resultMap = new HashMap<String, String>();
+			resultMap.put("appid", alipayConfigProfile.getAppid());
+			resultMap.put("merchant_name", merchant_name);
+			logger.info("** ISV系统配置 - 返回给调用方：" + DataChangeTools.bean2gson(resultMap));
 			// 根据返回的不同code返回相应结果
 			String code = response.getCode();
 			if("10000".equals(code)) {
@@ -76,12 +81,12 @@ public class ParkingConfigServiceImpl implements ParkingConfigService {
 				if(0 > addResult) {
 					logger.info("**  ISV系统配置 - 写入数据库失败。merchant_name = " + merchant_name);
 				}
-				return BackResultTools.response(ErrorCode.成功.getCode(), ErrorCode.成功.getContent(), paramMap, "");
+				return BackResultTools.response(ErrorCode.成功.getCode(), ErrorCode.成功.getContent(), resultMap, "");
 			}else {
 				logger.info("** ISV系统配置 - 配置失败：merchant_name = " + merchant_name + "，" 
 						+ response.getMsg() + ", " + response.getSubCode() + "," + 
 						response.getSubMsg());
-				return BackResultTools.response(ErrorCode.失败.getCode(), response.getSubMsg(), paramMap, "");
+				return BackResultTools.response(ErrorCode.失败.getCode(), response.getSubMsg(), resultMap, "");
 			}
 		} catch (Exception e) {
 			logger.info("** ISV系统配置 - 服务器出现异常：" + e.getMessage());
@@ -113,9 +118,10 @@ public class ParkingConfigServiceImpl implements ParkingConfigService {
 				resultMap.put("merchant_service_phone", response.getMerchantServicePhone());
 				resultMap.put("account_no", response.getAccountNo());
 				InterfaceInfoList interfaceInfoList = response.getInterfaceInfoList();
-				resultMap.put("interface_info_list", DataChangeTools.bean2gson(interfaceInfoList));
+				resultMap.put("interface_url", interfaceInfoList.getInterfaceUrl());
 				resultMap.put("merchant_logo", response.getMerchantLogo());
 				logger.info("** ISV系统配置查询 - 查询成功！");
+				logger.info("** ISV系统配置查询 - 返回给调用方：" + DataChangeTools.bean2gson(resultMap));
 				return BackResultTools.response(ErrorCode.成功.getCode(), ErrorCode.成功.getContent(), resultMap, "");
 			}else {
 				logger.info("** ISV系统配置查询 - 查询失败：" + response.getMsg() + ", " 

@@ -16,7 +16,9 @@ import com.park.paycenter.service.aliparking.ParkingInfoService;
 /**
  * 
  * @author WangYuefei
- *
+ * @time 2017/12/12
+ * @function 停车场信息的新增和修改操作
+ * 
  */
 @Controller
 @RequestMapping(value="/parkinginfo")
@@ -31,7 +33,7 @@ public class ParkingInfoController {
 		Map<String, String> paramMap = new HashMap<String, String>();
 		paramMap.put("city_id", request.getParameter("city_id"));
 		paramMap.put("equipment_name", request.getParameter("equipment_name"));
-		paramMap.put("out_parking_id", request.getParameter("out_parking_id"));
+		paramMap.put("out_parking_id", request.getParameter("park_id"));
 		paramMap.put("parking_address", request.getParameter("parking_address"));
 		paramMap.put("longitude", request.getParameter("longitude"));
 		paramMap.put("latitude", request.getParameter("latitude"));
@@ -59,10 +61,9 @@ public class ParkingInfoController {
 	@RequestMapping(value="/update", produces="text/html;charset=UTF-8")
 	public String parkingUpdate(HttpServletRequest request, HttpServletResponse response) {
 		Map<String, String> paramMap = new HashMap<String, String>();
-		paramMap.put("parking_id", request.getParameter("parking_id"));
 		paramMap.put("city_id", request.getParameter("city_id"));
 		paramMap.put("equipment_name", request.getParameter("equipment_name"));
-		paramMap.put("out_parking_id", request.getParameter("out_parking_id"));
+		paramMap.put("out_parking_id", request.getParameter("park_id"));
 		paramMap.put("parking_address", request.getParameter("parking_address"));
 		paramMap.put("longitude", request.getParameter("longitude"));
 		paramMap.put("latitude", request.getParameter("latitude"));

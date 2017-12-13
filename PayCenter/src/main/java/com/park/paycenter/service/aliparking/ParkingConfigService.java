@@ -7,7 +7,9 @@ import org.springframework.stereotype.Repository;
 /**
  * 
  * @author WangYuefei
- *
+ * @time 2017/12/11
+ * @function ISV系统配置和查询
+ * 
  */
 @Repository(value="parkingConfigService")
 public interface ParkingConfigService {

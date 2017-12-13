@@ -16,7 +16,9 @@ import com.park.paycenter.service.aliparking.ParkingConfigService;
 /**
  * 
  * @author WangYuefei
- *
+ * @time 2017/12/11
+ * @function ISV系统配置和查询
+ * 
  */
 @Controller
 @RequestMapping(value = "/parkingconfig")
@@ -51,7 +53,7 @@ public class ParkingConfigController {
 	 * @return
 	 */
 	@ResponseBody
-	@RequestMapping(value="/config", produces="text/html;charset=UTF-8")
+	@RequestMapping(value="/query", produces="text/html;charset=UTF-8")
 	public String configQuery(HttpServletRequest request, HttpServletResponse response) {
 		return parkingConfigService.configQuery();
 	}

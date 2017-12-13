@@ -1,5 +1,6 @@
 package com.park.paycenter.service.aliparking.impl;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import javax.annotation.Resource;
@@ -37,13 +38,14 @@ public class ParkingInfoServiceImpl implements ParkingInfoService {
 	public String create(Map<String, String> paramMap) {
 		try {
 			logger.info("** 录入车场信息 - 传入参数：" + DataChangeTools.bean2gson(paramMap));
+			String out_parking_id = paramMap.get("out_parking_id");
 			// 开始准备调用支付宝
 			AlipayClient alipayClient = new DefaultAlipayClient("https://openapi.alipay.com/gateway.do","app_id","your private_key","json","GBK","alipay_public_key","RSA2");
 			AlipayEcoMycarParkingParkinglotinfoCreateRequest request = new AlipayEcoMycarParkingParkinglotinfoCreateRequest();
 			request.setBizContent("{" +
 			"\"city_id\":\"" + paramMap.get("city_id") + "\"," +
 			"\"equipment_name\":\"" + paramMap.get("equipment_name") + "\"," +
-			"\"out_parking_id\":\"" + paramMap.get("out_parking_id") + "\"," +
+			"\"out_parking_id\":\"" + out_parking_id + "\"," +
 			"\"parking_address\":\"" + paramMap.get("parking_address") + "\"," +
 			"\"longitude\":\"" + paramMap.get("longitude") + "\"," +
 			"\"latitude\":\"" + paramMap.get("latitude") + "\"," +
@@ -68,20 +70,24 @@ public class ParkingInfoServiceImpl implements ParkingInfoService {
 			logger.info("** 录入车场信息 - 待发送参数：" + DataChangeTools.bean2gson(request));
 			AlipayEcoMycarParkingParkinglotinfoCreateResponse response = alipayClient.execute(request);
 			logger.info("** 录入车场信息 - 支付宝返回结果：" + DataChangeTools.bean2gson(response));
+			// 整理返回参数
+			Map<String, String> resultMap = new HashMap<String, String>();
+			resultMap.put("park_id", out_parking_id);
+			logger.info("** 录入车场信息 - 返回给调用方：" + DataChangeTools.bean2gson(resultMap));
 			// 根据返回的不同code返回相应结果
 			String code = response.getCode();
 			if("10000".equals(code)) {
-				logger.info("** 录入车辆信息 - 录入成功！out_parking_id = " + paramMap.get("out_parking_id"));
+				logger.info("** 录入车辆信息 - 录入成功！out_parking_id = " + out_parking_id);
 				// 将支付宝返回的parking_id放入paramMap并将车场数据写入数据库
 				paramMap.put("parking_id", response.getParkingId());
 				int addResult = parkingInfoDao.addParkInfo(paramMap);
 				if(0 > addResult) {
-					logger.info("** 录入车场信息 - 录入失败。out_parking_id = " + paramMap.get("out_parking_id"));
+					logger.info("** 录入车场信息 - 录入失败。out_parking_id = " + out_parking_id);
 				}
-				return BackResultTools.response(ErrorCode.成功.getCode(), ErrorCode.成功.getContent(), paramMap, "");
+				return BackResultTools.response(ErrorCode.成功.getCode(), ErrorCode.成功.getContent(), resultMap, "");
 			}else {
 				logger.info("** 录入车辆信息 - 录入失败。out_parking_id = " + paramMap.get("out_parking_id"));
-				return BackResultTools.response(ErrorCode.失败.getCode(), response.getSubMsg(), paramMap, "");
+				return BackResultTools.response(ErrorCode.失败.getCode(), response.getSubMsg(), resultMap, "");
 			}
 		} catch (Exception e) {
 			logger.info("** 录入车场信息 - 服务器出现异常：" + e.getMessage());
@@ -94,14 +100,22 @@ public class ParkingInfoServiceImpl implements ParkingInfoService {
 	public String update(Map<String, String> paramMap) {
 		try {
 			logger.info("** 修改车场信息 - 传入参数：" + DataChangeTools.bean2gson(paramMap));
+			// 验证park_id
+			String out_parking_id = paramMap.get("out_parking_id");
+			if(null == out_parking_id || "".equals("out_parking_id")) {
+				logger.info("** 修改车场信息 - park_id为空：park_id = " + out_parking_id);
+				return BackResultTools.response(ErrorCode.传入参数错误.getCode(), ErrorCode.传入参数错误.getContent(), "", "");
+			}
+			// 通过park_id查询支付宝parking_id
+			String parking_id = parkingInfoDao.getParkingIdByOutParkingId(paramMap.get("out_parking_id"));
 			// 开始准备调用支付宝
 			AlipayClient alipayClient = new DefaultAlipayClient("https://openapi.alipay.com/gateway.do","app_id","your private_key","json","GBK","alipay_public_key","RSA2");
 			AlipayEcoMycarParkingParkinglotinfoUpdateRequest request = new AlipayEcoMycarParkingParkinglotinfoUpdateRequest();
 			request.setBizContent("{" +
-			"\"parking_id\":\"" + paramMap.get("parking_id") + "\"," +
+			"\"parking_id\":\"" + parking_id + "\"," +
 			"\"city_id\":\"" + paramMap.get("city_id") + "\"," +
 			"\"equipment_name\":\"" + paramMap.get("equipment_name") + "\"," +
-			"\"out_parking_id\":\"" + paramMap.get("out_parking_id") + "\"," +
+			"\"out_parking_id\":\"" + out_parking_id + "\"," +
 			"\"parking_address\":\"" + paramMap.get("parking_address") + "\"," +
 			"\"longitude\":\"" + paramMap.get("longitude") + "\"," +
 			"\"latitude\":\"" + paramMap.get("latitude") + "\"," +
@@ -125,6 +139,10 @@ public class ParkingInfoServiceImpl implements ParkingInfoService {
 			logger.info("** 修改车场信息 - 待发送参数：" + DataChangeTools.bean2gson(request));
 			AlipayEcoMycarParkingParkinglotinfoUpdateResponse response = alipayClient.execute(request);
 			logger.info("** 修改车场信息 - 支付宝返回结果：" + DataChangeTools.bean2gson(response));
+			// 整理返回参数
+			Map<String, String> resultMap = new HashMap<String, String>();
+			resultMap.put("park_id", out_parking_id);
+			logger.info("** 修改车场信息 - 返回给调用方：" + DataChangeTools.bean2gson(resultMap));
 			// 根据返回的不同code返回相应结果
 			String code = response.getCode();
 			if("10000".equals(code)) {
@@ -134,10 +152,10 @@ public class ParkingInfoServiceImpl implements ParkingInfoService {
 				if(0 > addResult) {
 					logger.info("** 修改车场信息 - 修改失败。parking_id = " + paramMap.get("parking_id"));
 				}
-				return BackResultTools.response(ErrorCode.成功.getCode(), ErrorCode.成功.getContent(), paramMap, "");
+				return BackResultTools.response(ErrorCode.成功.getCode(), ErrorCode.成功.getContent(), resultMap, "");
 			}else {
 				logger.info("** 录入车辆信息 - 录入失败。out_parking_id = " + paramMap.get("out_parking_id"));
-				return BackResultTools.response(ErrorCode.失败.getCode(), response.getSubMsg(), paramMap, "");
+				return BackResultTools.response(ErrorCode.失败.getCode(), response.getSubMsg(), resultMap, "");
 			}
 		} catch (Exception e) {
 			logger.info("** 修改车场信息 - 服务器出现异常：" + e.getMessage());

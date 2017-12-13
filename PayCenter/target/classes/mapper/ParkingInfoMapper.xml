@@ -3,6 +3,10 @@
 
 <mapper namespace="com.park.paycenter.mapper.ParkingInfoMapper">
 
+	<select id="selectParkingIdByOutParkingId" resultType="string">
+		SELECT parking_id FROM pc_ali_park_info WHERE out_parking_id=#{out_parking_id}
+	</select>
+
 	<insert id="insertParkInfo">
 		INSERT INTO pc_ali_park_info(parking_id, city_id, out_parking_id, parking_address, 
 			longitude, latitude, parking_start_time, parking_end_time, parking_number, 
