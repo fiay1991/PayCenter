@@ -31,7 +31,7 @@ public class CarController {
 	@RequestMapping(value="enter", produces="text/html;charset=UTF-8")
 	public String carEnter(HttpServletRequest request, HttpServletResponse response) {
 		Map<String, String> paramMap = new HashMap<String, String>();
-		paramMap.put("parking_id", request.getParameter("parking_id"));
+		paramMap.put("out_parking_id", request.getParameter("park_id"));
 		paramMap.put("car_number", request.getParameter("car_number"));
 		paramMap.put("in_time", request.getParameter("in_time"));
 		return carService.carEnter(paramMap);
