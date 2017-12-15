@@ -1,6 +1,5 @@
 package com.park.paycenter.controller.aliparking;
 
-import java.util.HashMap;
 import java.util.Map;
 
 import javax.annotation.Resource;
@@ -12,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.park.paycenter.service.aliparking.CarService;
+import com.park.paycenter.tools.DataChangeTools;
 
 /**
  * 
@@ -30,11 +30,19 @@ public class CarController {
 	@ResponseBody
 	@RequestMapping(value="enter", produces="text/html;charset=UTF-8")
 	public String carEnter(HttpServletRequest request, HttpServletResponse response) {
-		Map<String, String> paramMap = new HashMap<String, String>();
-		paramMap.put("out_parking_id", request.getParameter("park_id"));
-		paramMap.put("car_number", request.getParameter("car_number"));
-		paramMap.put("in_time", request.getParameter("in_time"));
+		String params = request.getParameter("params");
+		Map<String, String> paramMap = DataChangeTools.json2Map(params);
+		
 		return carService.carEnter(paramMap);
+	}
+	
+	@ResponseBody
+	@RequestMapping(value="getcarnumber", produces="text/html;charset=UTF-8")
+	public String getCarNumber(HttpServletRequest request, HttpServletResponse response) {
+		String params = request.getParameter("params");
+		Map<String, String> paramMap = DataChangeTools.json2Map(params);
+		
+		return carService.getCarNumber(paramMap);
 	}
 	
 }

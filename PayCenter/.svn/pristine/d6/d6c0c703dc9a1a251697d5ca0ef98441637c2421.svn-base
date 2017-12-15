@@ -7,7 +7,6 @@ import javax.annotation.Resource;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 import com.alipay.api.AlipayClient;
@@ -18,7 +17,6 @@ import com.alipay.api.response.AlipayEcoMycarParkingParkinglotinfoCreateResponse
 import com.alipay.api.response.AlipayEcoMycarParkingParkinglotinfoUpdateResponse;
 import com.park.paycenter.dao.aliparking.ParkingInfoDao;
 import com.park.paycenter.enums.ErrorCode;
-import com.park.paycenter.profile.AlipayConfigProfile;
 import com.park.paycenter.service.aliparking.ParkingInfoService;
 import com.park.paycenter.tools.BackResultTools;
 import com.park.paycenter.tools.DataChangeTools;
@@ -36,18 +34,13 @@ public class ParkingInfoServiceImpl implements ParkingInfoService {
 	@Resource(name="parkingInfoDaoImpl")
 	private ParkingInfoDao parkingInfoDao;
 	
-	@Autowired
-	AlipayConfigProfile alipayConfigProfile;
-	
 	@Override
 	public String create(Map<String, String> paramMap) {
 		try {
 			logger.info("** 录入车场信息 - 传入参数：" + DataChangeTools.bean2gson(paramMap));
 			String out_parking_id = paramMap.get("park_id");
 			// 开始准备调用支付宝
-			AlipayClient alipayClient = new DefaultAlipayClient("https://openapi.alipay.com/gateway.do",alipayConfigProfile.getAppid(),
-					alipayConfigProfile.getRsa_private_key(),alipayConfigProfile.getFormat(),
-					alipayConfigProfile.getCharset(),alipayConfigProfile.getAlipay_public_key(),alipayConfigProfile.getSigntype());
+			AlipayClient alipayClient = new DefaultAlipayClient("https://openapi.alipay.com/gateway.do","app_id","your private_key","json","GBK","alipay_public_key","RSA2");
 			AlipayEcoMycarParkingParkinglotinfoCreateRequest request = new AlipayEcoMycarParkingParkinglotinfoCreateRequest();
 			request.setBizContent("{" +
 			"\"city_id\":\"" + paramMap.get("city_id") + "\"," +
@@ -80,6 +73,7 @@ public class ParkingInfoServiceImpl implements ParkingInfoService {
 			// 整理返回参数
 			Map<String, String> resultMap = new HashMap<String, String>();
 			resultMap.put("park_id", out_parking_id);
+			logger.info("** 录入车场信息 - 返回给调用方：" + DataChangeTools.bean2gson(resultMap));
 			// 根据返回的不同code返回相应结果
 			String code = response.getCode();
 			if("10000".equals(code)) {
@@ -114,11 +108,9 @@ public class ParkingInfoServiceImpl implements ParkingInfoService {
 				return BackResultTools.response(ErrorCode.传入参数错误.getCode(), ErrorCode.传入参数错误.getContent(), "", "");
 			}
 			// 通过park_id查询支付宝parking_id
-			String parking_id = parkingInfoDao.getParkingIdByOutParkingId(out_parking_id);
+			String parking_id = parkingInfoDao.getParkingIdByOutParkingId(paramMap.get("out_parking_id"));
 			// 开始准备调用支付宝
-			AlipayClient alipayClient = new DefaultAlipayClient("https://openapi.alipay.com/gateway.do",alipayConfigProfile.getAppid(),
-					alipayConfigProfile.getRsa_private_key(),alipayConfigProfile.getFormat(),
-					alipayConfigProfile.getCharset(),alipayConfigProfile.getAlipay_public_key(),alipayConfigProfile.getSigntype());
+			AlipayClient alipayClient = new DefaultAlipayClient("https://openapi.alipay.com/gateway.do","app_id","your private_key","json","GBK","alipay_public_key","RSA2");
 			AlipayEcoMycarParkingParkinglotinfoUpdateRequest request = new AlipayEcoMycarParkingParkinglotinfoUpdateRequest();
 			request.setBizContent("{" +
 			"\"parking_id\":\"" + parking_id + "\"," +
@@ -151,6 +143,7 @@ public class ParkingInfoServiceImpl implements ParkingInfoService {
 			// 整理返回参数
 			Map<String, String> resultMap = new HashMap<String, String>();
 			resultMap.put("park_id", out_parking_id);
+			logger.info("** 修改车场信息 - 返回给调用方：" + DataChangeTools.bean2gson(resultMap));
 			// 根据返回的不同code返回相应结果
 			String code = response.getCode();
 			if("10000".equals(code)) {

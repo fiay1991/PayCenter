@@ -12,6 +12,7 @@ import org.springframework.stereotype.Repository;
 
 import com.alipay.api.AlipayClient;
 import com.alipay.api.DefaultAlipayClient;
+import com.alipay.api.domain.InterfaceInfoList;
 import com.alipay.api.request.AlipayEcoMycarParkingConfigQueryRequest;
 import com.alipay.api.request.AlipayEcoMycarParkingConfigSetRequest;
 import com.alipay.api.response.AlipayEcoMycarParkingConfigQueryResponse;
@@ -73,6 +74,7 @@ public class ParkingConfigServiceImpl implements ParkingConfigService {
 			Map<String, String> resultMap = new HashMap<String, String>();
 			resultMap.put("appid", alipayConfigProfile.getAppid());
 			resultMap.put("merchant_name", merchant_name);
+			logger.info("** ISV系统配置 - 返回给调用方：" + DataChangeTools.bean2gson(resultMap));
 			// 根据返回的不同code返回相应结果
 			String code = response.getCode();
 			if("10000".equals(code)) {
@@ -118,14 +120,11 @@ public class ParkingConfigServiceImpl implements ParkingConfigService {
 				resultMap.put("merchant_name", response.getMerchantName());
 				resultMap.put("merchant_service_phone", response.getMerchantServicePhone());
 				resultMap.put("account_no", response.getAccountNo());
-				// 取出interface_url参数
-				String body = response.getBody();
-				int start = body.indexOf("interface_url");
-				int end = body.lastIndexOf("\",\"interface_name");
-				String interface_url = body.substring(start + 16, end);
-				resultMap.put("interface_url", interface_url);
+				InterfaceInfoList interfaceInfoList = response.getInterfaceInfoList();
+				resultMap.put("interface_url", interfaceInfoList.getInterfaceUrl());
 				resultMap.put("merchant_logo", response.getMerchantLogo());
 				logger.info("** ISV系统配置查询 - 查询成功！");
+				logger.info("** ISV系统配置查询 - 返回给调用方：" + DataChangeTools.bean2gson(resultMap));
 				return BackResultTools.response(ErrorCode.成功.getCode(), ErrorCode.成功.getContent(), resultMap, "");
 			}else {
 				logger.info("** ISV系统配置查询 - 查询失败：" + response.getMsg() + ", " 

@@ -12,6 +12,7 @@ import org.springframework.stereotype.Repository;
 
 import com.alipay.api.AlipayClient;
 import com.alipay.api.DefaultAlipayClient;
+import com.alipay.api.domain.InterfaceInfoList;
 import com.alipay.api.request.AlipayEcoMycarParkingConfigQueryRequest;
 import com.alipay.api.request.AlipayEcoMycarParkingConfigSetRequest;
 import com.alipay.api.response.AlipayEcoMycarParkingConfigQueryResponse;
@@ -42,15 +43,13 @@ public class ParkingConfigServiceImpl implements ParkingConfigService {
 	@Override
 	public String configSet(Map<String, String> paramMap) {
 		try {
-			// 移出merchant_logo以精简日志
-			String merchant_logo = paramMap.get("merchant_logo");
-			paramMap.remove("merchant_logo");
 			logger.info("** ISV系统配置 - 传入参数：" + DataChangeTools.bean2gson(paramMap));
 			// 开始准备调用支付宝
 			String merchant_name = paramMap.get("merchant_name");
 			String merchant_service_phone = paramMap.get("merchant_service_phone");
 			String account_no = paramMap.get("account_no");
 			String interface_url = paramMap.get("interface_url");
+			String merchant_logo = paramMap.get("merchant_logo");
 			AlipayClient alipayClient = new DefaultAlipayClient("https://openapi.alipay.com/gateway.do",alipayConfigProfile.getAppid(),
 					alipayConfigProfile.getRsa_private_key(),alipayConfigProfile.getFormat(),
 					alipayConfigProfile.getCharset(),alipayConfigProfile.getAlipay_public_key(),alipayConfigProfile.getSigntype());
@@ -73,12 +72,12 @@ public class ParkingConfigServiceImpl implements ParkingConfigService {
 			Map<String, String> resultMap = new HashMap<String, String>();
 			resultMap.put("appid", alipayConfigProfile.getAppid());
 			resultMap.put("merchant_name", merchant_name);
+			logger.info("** ISV系统配置 - 返回给调用方：" + DataChangeTools.bean2gson(resultMap));
 			// 根据返回的不同code返回相应结果
 			String code = response.getCode();
 			if("10000".equals(code)) {
 				logger.info("** ISV系统配置 - 配置成功！merchant_name = " + merchant_name);
 				int addResult = parkingConfigDao.addConfig(paramMap);
-				paramMap.put("merchant_logo", merchant_logo);
 				if(0 > addResult) {
 					logger.info("**  ISV系统配置 - 写入数据库失败。merchant_name = " + merchant_name);
 				}
@@ -118,14 +117,11 @@ public class ParkingConfigServiceImpl implements ParkingConfigService {
 				resultMap.put("merchant_name", response.getMerchantName());
 				resultMap.put("merchant_service_phone", response.getMerchantServicePhone());
 				resultMap.put("account_no", response.getAccountNo());
-				// 取出interface_url参数
-				String body = response.getBody();
-				int start = body.indexOf("interface_url");
-				int end = body.lastIndexOf("\",\"interface_name");
-				String interface_url = body.substring(start + 16, end);
-				resultMap.put("interface_url", interface_url);
+				InterfaceInfoList interfaceInfoList = response.getInterfaceInfoList();
+				resultMap.put("interface_url", interfaceInfoList.getInterfaceUrl());
 				resultMap.put("merchant_logo", response.getMerchantLogo());
 				logger.info("** ISV系统配置查询 - 查询成功！");
+				logger.info("** ISV系统配置查询 - 返回给调用方：" + DataChangeTools.bean2gson(resultMap));
 				return BackResultTools.response(ErrorCode.成功.getCode(), ErrorCode.成功.getContent(), resultMap, "");
 			}else {
 				logger.info("** ISV系统配置查询 - 查询失败：" + response.getMsg() + ", " 

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<mapper namespace="com.park.paycenter.mapper.ParkingConfigMapper">
+<mapper namespace="com.park.paycenter.mapper.aliparking.ParkingConfigMapper">
 
 	<insert id="insertConfig">
 		INSERT INTO pc_ali_isv_config(merchant_name, merchant_service_phone, 

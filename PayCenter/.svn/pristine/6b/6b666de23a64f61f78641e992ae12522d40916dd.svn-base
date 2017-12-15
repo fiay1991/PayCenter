@@ -80,6 +80,7 @@ public class ParkingInfoServiceImpl implements ParkingInfoService {
 			// 整理返回参数
 			Map<String, String> resultMap = new HashMap<String, String>();
 			resultMap.put("park_id", out_parking_id);
+			logger.info("** 录入车场信息 - 返回给调用方：" + DataChangeTools.bean2gson(resultMap));
 			// 根据返回的不同code返回相应结果
 			String code = response.getCode();
 			if("10000".equals(code)) {
@@ -151,6 +152,7 @@ public class ParkingInfoServiceImpl implements ParkingInfoService {
 			// 整理返回参数
 			Map<String, String> resultMap = new HashMap<String, String>();
 			resultMap.put("park_id", out_parking_id);
+			logger.info("** 修改车场信息 - 返回给调用方：" + DataChangeTools.bean2gson(resultMap));
 			// 根据返回的不同code返回相应结果
 			String code = response.getCode();
 			if("10000".equals(code)) {

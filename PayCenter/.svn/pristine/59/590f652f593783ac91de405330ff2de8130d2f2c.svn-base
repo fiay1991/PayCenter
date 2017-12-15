@@ -1,5 +1,6 @@
 package com.park.paycenter.controller.aliparking;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import javax.annotation.Resource;
@@ -11,7 +12,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.park.paycenter.service.aliparking.ParkingConfigService;
-import com.park.paycenter.tools.DataChangeTools;
 
 /**
  * 
@@ -36,8 +36,12 @@ public class ParkingConfigController {
 	@ResponseBody
 	@RequestMapping(value="/set", produces="text/html;charset=UTF-8")
 	public String configSet(HttpServletRequest request, HttpServletResponse response) {
-		String params = request.getParameter("params");
-		Map<String, String> paramMap = DataChangeTools.json2Map(params);
+		Map<String, String> paramMap = new HashMap<String, String>();
+		paramMap.put("merchant_name", request.getParameter("merchant_name"));
+		paramMap.put("merchant_service_phone", request.getParameter("merchant_service_phone"));
+		paramMap.put("account_no", request.getParameter("account_no"));
+		paramMap.put("interface_url", request.getParameter("interface_url"));
+		paramMap.put("merchant_logo", request.getParameter("merchant_logo"));
 		
 		return parkingConfigService.configSet(paramMap);
 	}

@@ -80,6 +80,7 @@ public class ParkingInfoServiceImpl implements ParkingInfoService {
 			// 整理返回参数
 			Map<String, String> resultMap = new HashMap<String, String>();
 			resultMap.put("park_id", out_parking_id);
+			logger.info("** 录入车场信息 - 返回给调用方：" + DataChangeTools.bean2gson(resultMap));
 			// 根据返回的不同code返回相应结果
 			String code = response.getCode();
 			if("10000".equals(code)) {
@@ -114,7 +115,7 @@ public class ParkingInfoServiceImpl implements ParkingInfoService {
 				return BackResultTools.response(ErrorCode.传入参数错误.getCode(), ErrorCode.传入参数错误.getContent(), "", "");
 			}
 			// 通过park_id查询支付宝parking_id
-			String parking_id = parkingInfoDao.getParkingIdByOutParkingId(out_parking_id);
+			String parking_id = parkingInfoDao.getParkingIdByOutParkingId(paramMap.get("out_parking_id"));
 			// 开始准备调用支付宝
 			AlipayClient alipayClient = new DefaultAlipayClient("https://openapi.alipay.com/gateway.do",alipayConfigProfile.getAppid(),
 					alipayConfigProfile.getRsa_private_key(),alipayConfigProfile.getFormat(),
@@ -151,6 +152,7 @@ public class ParkingInfoServiceImpl implements ParkingInfoService {
 			// 整理返回参数
 			Map<String, String> resultMap = new HashMap<String, String>();
 			resultMap.put("park_id", out_parking_id);
+			logger.info("** 修改车场信息 - 返回给调用方：" + DataChangeTools.bean2gson(resultMap));
 			// 根据返回的不同code返回相应结果
 			String code = response.getCode();
 			if("10000".equals(code)) {
