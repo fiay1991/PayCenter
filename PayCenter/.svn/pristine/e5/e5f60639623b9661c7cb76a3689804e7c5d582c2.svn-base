@@ -45,13 +45,4 @@ public class CarController {
 		return carService.getCarNumber(paramMap);
 	}
 	
-	@ResponseBody
-	@RequestMapping(value="exit", produces="text/html;charset=UTF-8")
-	public String carExit(HttpServletRequest request, HttpServletResponse response) {
-		String params = request.getParameter("params");
-		Map<String, String> paramMap = DataChangeTools.json2Map(params);
-		
-		return carService.carExit(paramMap);
-	}
-	
 }

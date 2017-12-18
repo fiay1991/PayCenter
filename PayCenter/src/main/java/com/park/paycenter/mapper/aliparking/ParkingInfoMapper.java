@@ -32,5 +32,12 @@ public interface ParkingInfoMapper {
 	 * @return
 	 */
 	String selectParkingIdByOutParkingId(String out_parking_id);
+
+	/**
+	 * 通过out_parking_id查询支付宝parking_id和parking_name
+	 * @param out_parking_id
+	 * @return
+	 */
+	Map<String, String> selectParkingIdAndParkingNameByParkingId(String out_parking_id);
 	
 }

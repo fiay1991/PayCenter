@@ -29,5 +29,10 @@ public class ParkingInfoDaoImpl implements ParkingInfoDao{
 	public String getParkingIdByOutParkingId(String out_parking_id) {
 		return parkingInfoMapper.selectParkingIdByOutParkingId(out_parking_id);
 	}
+
+	@Override
+	public Map<String, String> getParkingIdAndParkingNameByOutParkingId(String out_parking_id) {
+		return parkingInfoMapper.selectParkingIdAndParkingNameByParkingId(out_parking_id);
+	}
 	
 }

@@ -68,6 +68,7 @@ public class CarServiceImpl implements CarService {
 			logger.info("** 车辆入场信息同步 - 支付宝返回结果：" + DataChangeTools.bean2gson(response));
 			// 根据返回的code进行不同的处理
 			paramMap.remove("in_time");
+			logger.info("** 车辆入场信息同步 - 返回给调用方：" + DataChangeTools.bean2gson(paramMap));
 			String code = response.getCode();
 			if("10000".equals(code)) {
 				logger.info("** 车辆入场信息同步 - 同步成功！" + DataChangeTools.bean2gson(paramMap));
@@ -144,6 +145,7 @@ public class CarServiceImpl implements CarService {
 			logger.info("** 车辆出场信息同步 - 支付宝返回结果：" + DataChangeTools.bean2gson(response));
 			// 根据返回的code进行不同的处理
 			paramMap.remove("out_time");
+			logger.info("** 车辆出场信息同步 - 返回给调用方：" + DataChangeTools.bean2gson(paramMap));
 			String code = response.getCode();
 			if("10000".equals(code)) {
 				logger.info("** 车辆出场信息同步 - 同步成功！" + DataChangeTools.bean2gson(paramMap));

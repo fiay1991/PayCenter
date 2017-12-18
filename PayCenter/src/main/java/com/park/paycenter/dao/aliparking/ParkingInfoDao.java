@@ -33,4 +33,11 @@ public interface ParkingInfoDao {
 	 */
 	String getParkingIdByOutParkingId(String string);
 
+	/**
+	 * 通过out_parking_id查询支付宝parking_id和parking_name
+	 * @param out_parking_id
+	 * @return
+	 */
+	Map<String, String> getParkingIdAndParkingNameByOutParkingId(String out_parking_id);
+
 }

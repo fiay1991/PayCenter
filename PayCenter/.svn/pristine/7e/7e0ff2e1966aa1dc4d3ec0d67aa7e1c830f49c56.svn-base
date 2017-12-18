@@ -13,10 +13,8 @@ import org.springframework.stereotype.Repository;
 import com.alipay.api.AlipayClient;
 import com.alipay.api.DefaultAlipayClient;
 import com.alipay.api.request.AlipayEcoMycarParkingEnterinfoSyncRequest;
-import com.alipay.api.request.AlipayEcoMycarParkingExitinfoSyncRequest;
 import com.alipay.api.request.AlipayEcoMycarParkingVehicleQueryRequest;
 import com.alipay.api.response.AlipayEcoMycarParkingEnterinfoSyncResponse;
-import com.alipay.api.response.AlipayEcoMycarParkingExitinfoSyncResponse;
 import com.alipay.api.response.AlipayEcoMycarParkingVehicleQueryResponse;
 import com.park.paycenter.dao.aliparking.ParkingInfoDao;
 import com.park.paycenter.enums.ErrorCode;
@@ -68,6 +66,7 @@ public class CarServiceImpl implements CarService {
 			logger.info("** 车辆入场信息同步 - 支付宝返回结果：" + DataChangeTools.bean2gson(response));
 			// 根据返回的code进行不同的处理
 			paramMap.remove("in_time");
+			logger.info("** 车辆入场信息同步 - 返回给调用方：" + DataChangeTools.bean2gson(paramMap));
 			String code = response.getCode();
 			if("10000".equals(code)) {
 				logger.info("** 车辆入场信息同步 - 同步成功！" + DataChangeTools.bean2gson(paramMap));
@@ -112,48 +111,6 @@ public class CarServiceImpl implements CarService {
 			}
 		} catch (Exception e) {
 			logger.info("** 获取car_number - 服务器出现异常：" + e.getMessage());
-			e.printStackTrace();
-			return BackResultTools.response(ErrorCode.服务器参数错误.getCode(), ErrorCode.服务器参数错误.getContent(), "", "");
-		}
-	}
-
-	@Override
-	public String carExit(Map<String, String> paramMap) {
-		try {
-			logger.info("** 车辆出场信息同步 - 传入参数：" + DataChangeTools.bean2gson(paramMap));
-			// 验证必传参数
-			String out_parking_id = paramMap.get("park_id");
-			if(null == out_parking_id || "".equals(out_parking_id)) {
-				logger.info("** 车辆出场信息同步 - park_id为空：park_id = " + out_parking_id);
-				return BackResultTools.response(ErrorCode.传入参数错误.getCode(), ErrorCode.传入参数错误.getContent(), "", "");
-			}
-			// 通过out_parking_id查询parking_id
-			String parking_id = parkingInfoDao.getParkingIdByOutParkingId(out_parking_id);
-			// 开始准备向支付宝发送请求
-			AlipayClient alipayClient = new DefaultAlipayClient("https://openapi.alipay.com/gateway.do",alipayConfigProfile.getAppid(),
-					alipayConfigProfile.getRsa_private_key(),alipayConfigProfile.getFormat(),
-					alipayConfigProfile.getCharset(),alipayConfigProfile.getAlipay_public_key(),alipayConfigProfile.getSigntype());
-			AlipayEcoMycarParkingExitinfoSyncRequest request = new AlipayEcoMycarParkingExitinfoSyncRequest();
-			request.setBizContent("{" +
-			"\"parking_id\":\"" + parking_id + "\"," +
-			"\"car_number\":\"" + paramMap.get("car_number") + "\"," +
-			"\"out_time\":\"" + paramMap.get("out_time") + "\"" +
-			"  }");
-			logger.info("** 车辆出场信息同步 - 待发送参数：" + DataChangeTools.bean2gson(request));
-			AlipayEcoMycarParkingExitinfoSyncResponse response = alipayClient.execute(request);
-			logger.info("** 车辆出场信息同步 - 支付宝返回结果：" + DataChangeTools.bean2gson(response));
-			// 根据返回的code进行不同的处理
-			paramMap.remove("out_time");
-			String code = response.getCode();
-			if("10000".equals(code)) {
-				logger.info("** 车辆出场信息同步 - 同步成功！" + DataChangeTools.bean2gson(paramMap));
-				return BackResultTools.response(ErrorCode.成功.getCode(), ErrorCode.成功.getContent(), paramMap, "");
-			}else {
-				logger.info("** 车辆出场信息同步 - 同步失败。" + DataChangeTools.bean2gson(paramMap));
-				return BackResultTools.response(ErrorCode.失败.getCode(), response.getSubMsg(), paramMap, "");
-			}
-		} catch (Exception e) {
-			logger.info("** 车辆出场信息同步 - 服务器出现异常：" + e.getMessage());
 			e.printStackTrace();
 			return BackResultTools.response(ErrorCode.服务器参数错误.getCode(), ErrorCode.服务器参数错误.getContent(), "", "");
 		}

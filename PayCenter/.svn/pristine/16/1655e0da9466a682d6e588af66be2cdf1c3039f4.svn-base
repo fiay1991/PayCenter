@@ -27,12 +27,5 @@ public interface CarService {
 	 * @return
 	 */
 	String getCarNumber(Map<String, String> paramMap);
-
-	/**
-	 * 车辆出场信息同步
-	 * @param paramMap
-	 * @return
-	 */
-	String carExit(Map<String, String> paramMap);
 	
 }

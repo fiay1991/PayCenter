@@ -6,6 +6,10 @@
 	<select id="selectParkingIdByOutParkingId" resultType="string">
 		SELECT parking_id FROM pc_ali_park_info WHERE out_parking_id=#{out_parking_id}
 	</select>
+	
+	<select id="selectParkingIdAndParkingNameByParkingId" resultType="map">
+		SELECT parking_id, parking_name FROM pc_ali_park_info WHERE out_parking_id=#{out_parking_id}
+	</select>
 
 	<insert id="insertParkInfo">
 		INSERT INTO pc_ali_park_info(parking_id, city_id, out_parking_id, parking_address, 
