@@ -5,16 +5,16 @@
 	<resultMap type="Internal_log_records" id="resultInternal_log_records">
 		<id property="id" column="id" />
 		<result property="timestamp" column="timestamp" />
-		<result property="visitor" column="visitor" />
-		<result property="user_environment" column="user_environment" />
-		<result property="req_params" column="req_params" />
-		<result property="req_interface" column="req_interface" />
-		<result property="return_result" column="return_result" />
+		<result property="tradeMethod" column="trade_method" />
+		<result property="tradeType" column="trade_type" />
+		<result property="reqParams" column="req_params" />
+		<result property="reqInterface" column="req_interface" />
+		<result property="returnResult" column="return_result" />
 	</resultMap>
 
 	<select id="findAll" resultType="list" resultMap="resultInternal_log_records">
 		SELECT * FROM
-		internal_log_records
+		pc_internal_records
 	</select>
 
 	<!-- 添加日志记录 -->
@@ -23,7 +23,7 @@
 			SELECT LAST_INSERT_ID() AS id
 		</selectKey>
 		INSERT INTO
-		internal_log_records(visitor,user_environment,req_params,req_interface,return_result)
-		VALUES(#{visitor},#{user_environment},#{req_params},#{req_interface},#{return_result})
+		pc_internal_records (trade_method,trade_type,req_params,req_interface,return_result)
+		VALUES(#{tradeMethod},#{tradeType},#{reqParams},#{reqInterface},#{returnResult})
 	</insert>
 </mapper>

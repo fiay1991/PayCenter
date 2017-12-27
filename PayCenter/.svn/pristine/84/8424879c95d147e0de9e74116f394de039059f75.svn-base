@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.park.paycenter.mapper.Pc_current_accountsMapper">
+	<!-- 定义数据库字段与实体对象的映射关系(SQL字段与类属性的映射关系，避免在SQL语句中使用as转换字段别名) -->
+	<resultMap type="Pc_current_accounts" id="resultPc_current_accounts">
+		<id property="id" column="id" />
+		<result property="platform" column="platform" />
+		<result property="income" column="income" />
+		<result property="pay" column="pay" />
+		<result property="out_trade_no" column="out_trade_no" />
+		<result property="terminal_type" column="terminal_type" />
+		<result property="park_id" column="park_id" />
+		<result property="ordernum" column="ordernum" />
+		<result property="zfb_trade_no" column="zfb_trade_no" />
+		<result property="return_url" column="return_url" />
+		<result property="wx_prepayid" column="wx_prepayid" />
+		<result property="wx_transaction_id" column="wx_transaction_id" />
+		<result property="timestamp" column="timestamp" />
+		<result property="status" column="status" />
+		<result property="open_id" column="openid" />
+	</resultMap>
+
+	<!-- 插入 -->
+	<insert id="insert" parameterType="Pc_current_accounts">
+		<selectKey resultType="int" order="AFTER" keyProperty="id">
+			SELECT LAST_INSERT_ID() AS id
+		</selectKey>
+		INSERT INTO
+		pc_current_accounts(platform,income,pay,out_trade_no,terminal_type,park_id,ordernum,zfb_trade_no,wx_prepayid,wx_transaction_id,status,return_url,openid)
+		VALUES(#{platform},#{income},#{pay},#{out_trade_no},#{terminal_type},#{park_id},#{ordernum},#{zfb_trade_no},#{wx_prepayid},#{wx_transaction_id},#{status},#{return_url},#{open_id})
+	</insert>
+	<!-- 更新 -->
+	<update id="update" parameterType="Pc_current_accounts">
+		UPDATE pc_current_accounts
+		<set>
+			<if test="platform != null">platform=#{platform},</if>
+			<if test="income != null">income=#{income},</if>
+			<if test="pay != null">pay=#{pay},</if>
+			<if test="out_trade_no != null">out_trade_no=#{out_trade_no},</if>
+			<if test="terminal_type != null">terminal_type=#{terminal_type},</if>
+			<if test="park_id != null">park_id=#{park_id},</if>
+			<if test="ordernum != null">ordernum=#{ordernum},</if>
+			<if test="zfb_trade_no != null">zfb_trade_no=#{zfb_trade_no},</if>
+			<if test="wx_prepayid != null">wx_prepayid=#{wx_prepayid},</if>
+			<if test="wx_transaction_id != null">wx_transaction_id=#{wx_transaction_id},</if>
+			<if test="timestamp != null">timestamp=#{timestamp},</if>
+			<if test="status != null">status=#{status},</if>
+			<if test="open_id != null">openid=#{open_id},</if>
+			update_time=NOW()
+		</set>
+		WHERE ordernum=#{ordernum}
+		<if test="id != 0">AND id=#{id}</if>
+	</update>
+	
+	<select id="findAll" resultType="list" resultMap="resultPc_current_accounts">
+		SELECT * FROM
+		pc_current_accounts
+	</select>
+	
+	<!-- 查询单个 -->
+	<select id="search" parameterType="Pc_current_accounts"
+		resultType="Pc_current_accounts">
+		SELECT * FROM pc_current_accounts
+		WHERE 1=1
+		<if test="id != 0">AND id=#{id}</if>
+		<if test="platform != null">AND platform=#{platform}</if>
+		<if test="income != null">AND income=#{income}</if>
+		<if test="pay != null">AND pay=#{pay}</if>
+		<if test="out_trade_no != null">AND out_trade_no=#{out_trade_no}</if>
+		<if test="terminal_type != null">AND terminal_type=#{terminal_type}</if>
+		<if test="park_id != null">AND park_id=#{park_id}</if>
+		<if test="ordernum != null">AND ordernum=#{ordernum}</if>
+		<if test="zfb_trade_no != null">zfb_trade_no=#{zfb_trade_no}</if>
+		<if test="wx_prepayid != null">AND wx_prepayid=#{wx_prepayid}</if>
+		<if test="wx_transaction_id != null">AND wx_transaction_id=#{wx_transaction_id}</if>
+		<if test="timestamp != null">AND timestamp=#{timestamp}</if>
+		<if test="status != null">AND status=#{status}</if>
+		<if test="open_id != null">AND openid=#{open_id}</if>
+		LIMIT 1
+	</select>
+	
+	<!-- 查询列表 -->
+	<select id="searchList" parameterType="Pc_current_accounts"
+		resultType="list" resultMap="resultPc_current_accounts">
+		SELECT * FROM pc_current_accounts
+		WHERE 1=1
+		<if test="id != 0">AND id=#{id}</if>
+		<if test="platform != null">AND platform=#{platform}</if>
+		<if test="income != null">AND income=#{income}</if>
+		<if test="pay != null">AND pay=#{pay}</if>
+		<if test="out_trade_no != null">AND ordernum=#{out_trade_no}</if>
+		<if test="terminal_type != null">AND terminal_type=#{terminal_type}</if>
+		<if test="park_id != null">AND park_id=#{park_id}</if>
+		<if test="ordernum != null">AND ordernum=#{ordernum}</if>
+		<if test="zfb_trade_no != null">zfb_trade_no=#{zfb_trade_no}</if>
+		<if test="wx_prepayid != null">AND wx_prepayid=#{wx_prepayid}</if>
+		<if test="wx_transaction_id != null">AND wx_transaction_id=#{wx_transaction_id}</if>
+		<if test="timestamp != null">AND timestamp=#{timestamp}</if>
+		<if test="status != null">AND status=#{status}</if>
+		<if test="open_id != null">AND openid=#{open_id}</if>
+	</select>
+	
+	<select id="selectOpenidAndOrdernoByOuttradeno" resultType="map">
+		SELECT openid, zfb_trade_no FROM pc_current_accounts WHERE out_trade_no={#out_trade_no}
+	</select>
+	
+</mapper>

@@ -1,0 +1,86 @@
+package com.park.paycenter.timetask;
+
+import java.util.Date;
+import java.util.List;
+
+import javax.annotation.Resource;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+
+import com.park.base.common.DataChangeTools;
+import com.park.base.common.DateTools;
+import com.park.base.common.constants.PublicKeyConstants;
+import com.park.paycenter.constants.NotifyFrequencyConstants;
+import com.park.paycenter.constants.NotifyStatusConstants;
+import com.park.paycenter.dao.FailNotifyRecordDao;
+import com.park.paycenter.domain.FailNotifyRecord;
+import com.park.paycenter.tools.Tools;
+
+/**
+ * 对通知失败的订单进行轮询，通知一定次数后，将不再轮询
+ * @author fangct
+ * created at 20170619
+ */
+@Component
+public class PayedNotifyTask {
+
+	private Logger logger = LoggerFactory.getLogger(this.getClass());
+	
+	@Resource(name="FailNotifyRecordDaoImpl")
+	private FailNotifyRecordDao failNotifyRecordDao;
+	
+	public void executeInternal(){
+		//查询所有待轮询通知的订单, 条件：待轮询状态+下次执行时间等于当前时间
+		List<FailNotifyRecord> records = failNotifyRecordDao.findByStatus(NotifyStatusConstants.RED, DateTools.addMinute(new Date(), 0));
+		logger.info("****轮询通知: 本次有[ {} ]个订单要轮询...",records == null ? 0 : records.size());
+		
+		for(FailNotifyRecord record : records){
+			//通知支付结果
+			if(payed_notify(record)){
+				/**通知返回结果成功*/
+				//修改当前订单的通知状态为成功
+				record.setStatus(NotifyStatusConstants.GREEN);
+			}else{
+				/**通知返回结果失败*/
+				//已通知次数：本次通知前的次数+1
+				int notify_times = record.getNotify_times() + 1;
+				if(notify_times >= NotifyFrequencyConstants.MAX_NOTIFY_TIMES){
+					record.setStatus(NotifyStatusConstants.YELLOW);
+				}else{
+					//当次通知时间
+					String current_notify_time = record.getNext_notify_time();
+					String next_notify_time =DateTools.addTime(current_notify_time, NotifyFrequencyConstants.timesMap.get(""+notify_times));
+					//更新下次通知时间
+					record.setNext_notify_time(next_notify_time);
+				}
+			}
+			record.setNotify_times(record.getNotify_times() + 1);
+			int n = failNotifyRecordDao.update(record);
+			if(n == 0) logger.info("订单号：{}，第{}次通知后，修改次数等值未成功！", record.getOut_trade_no(), record.getNotify_times() + 1);
+		}
+	}
+	
+	/**
+	 * 再次对支付结果进行通知
+	 * @param record
+	 * @return 通知的返回结果是否成功
+	 */
+	public boolean payed_notify(FailNotifyRecord record){
+		String notify_url = record.getNotify_url();
+		String params = record.getParams();
+		
+		try {
+			String result = Tools.requestBrotherProject(DataChangeTools.json2Map(params), notify_url, PublicKeyConstants.ScanPay);
+			/**通知返回成功*/
+			if("h5_success".equals(result)){
+				logger.info("订单号：{}，第{}次通知成功！", record.getOut_trade_no(), record.getNotify_times());
+				return true;
+			}
+		} catch (Exception e) {
+			logger.error("订单号：{}，访问主机出现异常，原因：{}",record.getOut_trade_no(), e);
+		}
+		return false;
+	}
+}

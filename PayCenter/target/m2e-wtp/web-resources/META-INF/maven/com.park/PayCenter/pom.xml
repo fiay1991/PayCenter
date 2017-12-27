@@ -100,7 +100,7 @@
 		<dependency>
 			<groupId>alipay.sdk.java</groupId>
 			<artifactId>alipay.sdk.java</artifactId>
-			<version>20171201160057</version>
+			<version>20170307171631</version>
 		</dependency>
 		<!-- <dependency>
 			<groupId>alipay-trade-sdk</groupId>
@@ -116,24 +116,21 @@
 			<groupId>org.apache.httpcomponents</groupId>
 			<artifactId>httpclient</artifactId>
 		</dependency>
-		
-		<!-- 任务调度quartz -->
-		<dependency>
-			<groupId>org.quartz-scheduler</groupId>
-			<artifactId>quartz</artifactId>
-			<version>2.2.1</version>
-		</dependency>
-		<dependency>
-			<groupId>org.quartz-scheduler</groupId>
-			<artifactId>quartz-jobs</artifactId>
-			<version>2.2.1</version>
-		</dependency>
-		
 		<!-- 邮件 -->
 		<dependency>
-	        <groupId>com.sun.mail</groupId>
-	        <artifactId>javax.mail</artifactId>
-	        </dependency>
+			<groupId>com.sun.mail</groupId>
+			<artifactId>javax.mail</artifactId>
+		</dependency>
+		<dependency>  
+	        <groupId>ch.qos.logback</groupId>  
+	        <artifactId>logback-classic</artifactId>  
+	        <version>1.2.2</version><!--$NO-MVN-MAN-VER$-->  
+	    </dependency> 
+		<dependency>
+			<groupId>com.cn.51park</groupId>
+			<artifactId>51park-base-common</artifactId>
+			<version>0.0.1-SNAPSHOT</version>
+		</dependency>
 	</dependencies>
 
 	<build>
@@ -149,8 +146,7 @@
 					<exclude>application-test.properties</exclude>
 					<exclude>application.properties</exclude>
 					<exclude>zfbinfo.properties</exclude>
-					<exclude>zfbinfo-partner.properties</exclude>
-					<!-- <exclude>logback-dev.xml</exclude> -->
+					<exclude>logback.xml</exclude>
 				</excludes>
 			</resource>
 			<resource>
@@ -158,10 +154,9 @@
 				<directory>src/main/resources</directory>
 				<includes>
 					<include>application-${profileActive}.properties</include>
-					<include>logback-${profileActive}.xml</include>
+					<include>logback.xml</include>
 					<include>application.properties</include>
 					<include>zfbinfo.properties</include>
-					<include>zfbinfo-partner.properties</include>
 				</includes>
 			</resource>
 		</resources>

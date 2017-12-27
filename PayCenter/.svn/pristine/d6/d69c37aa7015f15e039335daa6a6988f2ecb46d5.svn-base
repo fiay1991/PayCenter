@@ -1,0 +1,57 @@
+package com.park.paycenter.controller.aliparking;
+
+import java.util.Map;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.park.paycenter.service.aliparking.CarService;
+import com.park.paycenter.tools.DataChangeTools;
+
+/**
+ * 
+ * @author WangYuefei
+ * @time 2017/12/13
+ * @function 对车辆进出场信息的同步和查询操作
+ * 
+ */
+@Controller
+@RequestMapping(value="/car")
+public class CarController {
+	
+	@Resource(name="carServiceImpl")
+	private CarService carService;
+
+	@ResponseBody
+	@RequestMapping(value="/enter", produces="text/html;charset=UTF-8")
+	public String carEnter(HttpServletRequest request, HttpServletResponse response) {
+		String params = request.getParameter("params");
+		Map<String, String> paramMap = DataChangeTools.json2Map(params);
+		
+		return carService.carEnter(paramMap);
+	}
+	
+	@ResponseBody
+	@RequestMapping(value="/getcarnumber", produces="text/html;charset=UTF-8")
+	public String getCarNumber(HttpServletRequest request, HttpServletResponse response) {
+		String params = request.getParameter("params");
+		Map<String, String> paramMap = DataChangeTools.json2Map(params);
+		
+		return carService.getCarNumber(paramMap);
+	}
+	
+	@ResponseBody
+	@RequestMapping(value="/exit", produces="text/html;charset=UTF-8")
+	public String carExit(HttpServletRequest request, HttpServletResponse response) {
+		String params = request.getParameter("params");
+		Map<String, String> paramMap = DataChangeTools.json2Map(params);
+		
+		return carService.carExit(paramMap);
+	}
+	
+}

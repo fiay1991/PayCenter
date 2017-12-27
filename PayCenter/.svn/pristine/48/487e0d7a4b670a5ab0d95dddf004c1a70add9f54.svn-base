@@ -1,0 +1,48 @@
+package com.park.paycenter.controller.aliparking;
+
+import java.util.Map;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.park.paycenter.service.aliparking.OrderService;
+import com.park.paycenter.tools.DataChangeTools;
+
+/**
+ * 
+ * @author WangYuefei
+ * @time 2017/12/18
+ * @function 对订单信息的同步和更新操作
+ *
+ */
+@Controller
+@RequestMapping(value="/order")
+public class OrderController {
+	
+	@Resource(name="orderServiceImpl")
+	private OrderService orderService;
+	
+	@ResponseBody
+	@RequestMapping(value="/sync")
+	public String OrderSync(HttpServletRequest request, HttpServletResponse response) {
+		String params = request.getParameter("params");
+		Map<String, String> paramMap = DataChangeTools.json2Map(params);
+		
+		return orderService.orderSync(paramMap);
+	}
+	
+	@ResponseBody
+	@RequestMapping(value="/update")
+	public String OrderUpdate(HttpServletRequest request, HttpServletResponse response) {
+		String params = request.getParameter("params");
+		Map<String, String> paramMap = DataChangeTools.json2Map(params);
+		
+		return orderService.orderUpdate(paramMap);
+	}
+	
+}

@@ -22,13 +22,13 @@
 
 	<select id="findAll" resultType="list" resultMap="resultFailNotifyRecord">
 		SELECT * FROM
-		cc_notify_fail_record
+		pc_notify_fail_records
 		ORDER BY update_time DESC
 	</select>
 
 	<select id="findByStatus" resultType="list" resultMap="resultFailNotifyRecord" >
 		SELECT * FROM
-		cc_notify_fail_record
+		pc_notify_fail_records
 		WHERE status =#{status}
 		<if test="next_notify_time != null">
 			AND DATE_FORMAT(next_notify_time,'%Y-%m-%d %H:%i') = DATE_FORMAT(#{next_notify_time},'%Y-%m-%d %H:%i')
@@ -41,7 +41,7 @@
 		<selectKey resultType="int" order="AFTER" keyProperty="id">
 			SELECT LAST_INSERT_ID() AS id
 		</selectKey>
-		INSERT INTO cc_notify_fail_record (
+		INSERT INTO pc_notify_fail_records (
 			trade_type,
 			out_trade_no,
 			park_id,
@@ -69,7 +69,7 @@
 	
 	<!-- 更新 -->
 	<update id="update" parameterType="FailNotifyRecord">
-		UPDATE cc_notify_fail_record
+		UPDATE pc_notify_fail_records
 		<set>
 			<if test="out_trade_no != null">out_trade_no=#{out_trade_no}</if>
 			<if test="status != null">,status=#{status}</if>
@@ -83,7 +83,7 @@
 	
 	<select id="findNoSendMail" resultType="list" resultMap="resultFailNotifyRecord">
 		SELECT * FROM
-		cc_notify_fail_record
+		pc_notify_fail_records
 		WHERE send_status = 1
 		AND status != 'GREEN'
 		ORDER BY update_time DESC
